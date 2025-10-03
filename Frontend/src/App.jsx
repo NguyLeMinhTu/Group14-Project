@@ -6,7 +6,7 @@ import './App.css';
 function App() {
   return (
     <div className="App">
-      <h1>Quản Lý User</h1>
+      <h1>User Manager</h1>
       <AddUser />
       <UserList />
     </div>

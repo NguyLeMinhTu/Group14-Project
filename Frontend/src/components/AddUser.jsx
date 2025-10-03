@@ -30,7 +30,7 @@ const AddUser = () => {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
       />
-      <button type="submit">Thêm User</button>
+      <button type="submit">Add User</button>
     </form>
   );
 };
