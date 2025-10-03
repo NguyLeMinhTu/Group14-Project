@@ -2,6 +2,17 @@ const express = require('express');
 const app = express();
 app.use(express.json());
 
+// Kết nối MongoDB
+const mongoose = require('mongoose');
+require('dotenv').config();
+
+mongoose.connect(process.env.MONGODB_URI, {
+	useNewUrlParser: true,
+	useUnifiedTopology: true
+})
+	.then(() => console.log('Kết nối MongoDB thành công!'))
+	.catch((err) => console.error('Kết nối MongoDB thất bại:', err));
+
 // Thêm CORS middleware
 const cors = require('cors');
 app.use(cors({ origin: 'http://localhost:5173' }));
