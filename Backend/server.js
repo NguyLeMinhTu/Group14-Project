@@ -15,7 +15,8 @@ mongoose.connect(process.env.MONGODB_URI, {
 
 // Thêm CORS middleware
 const cors = require('cors');
-app.use(cors({ origin: 'http://localhost:5173' }));
+app.use(cors({ origin: '*' }));
+
 
 // users routes
 const userRouter = require('./routes/user');

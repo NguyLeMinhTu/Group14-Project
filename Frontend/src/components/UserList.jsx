@@ -12,7 +12,7 @@ const UserList = () => {
 
   return (
     <div>
-      <h2>Danh Sách User</h2>
+      <h2>List User</h2>
       <ul>
         {users.map(user => (
           <li key={user.id}>{user.name} - {user.email}</li>
