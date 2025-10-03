@@ -5,10 +5,17 @@ const UserList = () => {
   const [users, setUsers] = useState([]);
 
   useEffect(() => {
-    axios.get('http://localhost:3000/users')
-      .then(response => setUsers(response.data))
-      .catch(error => console.log(error));
+    fetchUsers();
   }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await axios.get('http://localhost:3000/users');
+      setUsers(response.data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   return (
     <div>
