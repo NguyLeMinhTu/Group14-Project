@@ -17,6 +17,7 @@ mongoose.connect(process.env.MONGODB_URI, {
 const cors = require('cors');
 app.use(cors({ origin: '*' }));
 
+
 // users routes
 const userRouter = require('./routes/user');
 app.use('/users', userRouter);
