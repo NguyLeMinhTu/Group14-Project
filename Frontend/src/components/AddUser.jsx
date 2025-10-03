@@ -7,6 +7,16 @@ const AddUser = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    // Basic validation
+    if (!name.trim()) {
+      alert("Name không được để trống");
+      return;
+    }
+    // Simple email regex for validation
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      alert("Email không hợp lệ");
+      return;
+    }
     axios.post('http://localhost:3000/users', { name, email })
       .then(() => {
         setName('');
