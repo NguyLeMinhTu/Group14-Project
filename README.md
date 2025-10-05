@@ -1,7 +1,5 @@
 # Group14-Project — User Manager
 
-Ghi chú: đây là README cho project quản lý user (Backend: Node/Express/MongoDB; Frontend: React + Vite). Thay đổi nội dung, tên thành viên và chèn ảnh demo vào `docs/screenshot.png` hoặc `Frontend/public/screenshot.png` nếu bạn muốn ảnh hiển thị trực tiếp trong README.
-
 ## Mô tả dự án
 
 Ứng dụng nhỏ để quản lý người dùng (CRUD):
