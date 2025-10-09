@@ -28,6 +28,10 @@ app.use('/users', userRouter);
 const authRouter = require('./routes/auth');
 app.use('/auth', authRouter);
 
+// profile routes
+const profileRouter = require('./routes/profile');
+app.use('/profile', profileRouter);
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
