@@ -1,62 +1,69 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import UserList from './components/UserList';
 import AddUser from './components/AddUser';
 import Login from './components/Login';
 import Register from './components/Register';
+import Profile from './components/Profile';
+import AdminUserList from './components/AdminUserList';
+import ForgotPassword from './components/ForgotPassword';
+import ResetPassword from './components/ResetPassword';
 import './App.css';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 
 function App() {
-  const [user, setUser] = useState(null); // user sau khi đăng nhập
-  const [showRegister, setShowRegister] = useState(false);
+  const [users, setUsers] = useState([]);
 
-  // Khi đăng nhập thành công
-  const handleLogin = (userData) => {
-    setUser(userData);
+  const fetchUsers = async () => {
+    try {
+      const res = await axios.get('http://localhost:3000/users');
+      setUsers(res.data);
+    } catch (err) {
+      console.error('Failed to fetch users', err);
+    }
   };
 
-  // Khi đăng ký thành công, tự động chuyển sang đăng nhập
-  const handleRegister = () => {
-    setShowRegister(false);
-  };
-
-  // Đăng xuất
-  const handleLogout = () => {
-    setUser(null);
-  };
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
   return (
-    <div className="App container">
-      <header className="app-header">
-        <h1>User Manager</h1>
-        {user && <button onClick={handleLogout}>Đăng xuất</button>}
-      </header>
-      <main className="app-main">
-        {!user ? (
-          <div style={{ maxWidth: 400, margin: '0 auto' }}>
-            {showRegister ? (
+    <Router>
+      <div className="App container">
+        <header className="app-header">
+          <h1>User Manager</h1>
+          <nav>
+            <Link to="/">Trang chủ</Link> |{' '}
+            <Link to="/login">Đăng nhập</Link> |{' '}
+            <Link to="/register">Đăng ký</Link> |{' '}
+            <Link to="/profile">Profile</Link> |{' '}
+            <Link to="/admin">Admin</Link> |{' '}
+            <Link to="/forgot-password">Quên mật khẩu</Link> |{' '}
+            <Link to="/reset-password">Đổi mật khẩu</Link>
+          </nav>
+        </header>
+        <main className="app-main">
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/admin" element={<AdminUserList />} />
+            <Route path="/" element={
               <>
-                <Register onRegister={handleRegister} />
-                <p>Bạn đã có tài khoản? <button onClick={() => setShowRegister(false)}>Đăng nhập</button></p>
+                <section className="left">
+                  <AddUser onUserAdded={fetchUsers} />
+                </section>
+                <section className="right">
+                  <UserList users={users} onUsersChanged={fetchUsers} />
+                </section>
               </>
-            ) : (
-              <>
-                <Login onLogin={handleLogin} />
-                <p>Chưa có tài khoản? <button onClick={() => setShowRegister(true)}>Đăng ký</button></p>
-              </>
-            )}
-          </div>
-        ) : (
-          <main className="app-main">
-            <section className="left">
-              <AddUser onUserAdded={() => {}} />
-            </section>
-            <section className="right">
-              <UserList />
-            </section>
-          </main>
-        )}
-      </main>
-    </div>
+            } />
+          </Routes>
+        </main>
+      </div>
+    </Router>
   );
 }
 

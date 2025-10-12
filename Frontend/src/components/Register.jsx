@@ -1,54 +1,35 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 
-const Register = ({ onRegister }) => {
-  const [name, setName] = useState('');
+const Register = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [name, setName] = useState('');
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
-    try {
-      const res = await axios.post('http://localhost:3000/auth/register', { name, email, password });
-      setSuccess('Đăng ký thành công!');
-      if (onRegister) onRegister(res.data);
-    } catch (err) {
-      setError(err.response?.data?.error || 'Đăng ký thất bại');
-    }
+    // TODO: Gọi API đăng ký
+    alert(`Đăng ký với email: ${email}, tên: ${name}`);
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h2>Đăng Ký</h2>
-      <input
-        type="text"
-        placeholder="Tên"
-        value={name}
-        onChange={e => setName(e.target.value)}
-        required
-      />
-      <input
-        type="email"
-        placeholder="Email"
-        value={email}
-        onChange={e => setEmail(e.target.value)}
-        required
-      />
-      <input
-        type="password"
-        placeholder="Mật khẩu"
-        value={password}
-        onChange={e => setPassword(e.target.value)}
-        required
-      />
-      <button type="submit">Đăng ký</button>
-      {error && <div style={{color:'red'}}>{error}</div>}
-      {success && <div style={{color:'green'}}>{success}</div>}
-    </form>
+    <div className="register-container">
+      <h2>Đăng ký</h2>
+      <form onSubmit={handleSubmit}>
+        <div>
+          <label>Tên:</label>
+          <input type="text" value={name} onChange={e => setName(e.target.value)} required />
+        </div>
+        <div>
+          <label>Email:</label>
+          <input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+        </div>
+        <div>
+          <label>Mật khẩu:</label>
+          <input type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+        </div>
+        <button type="submit">Đăng ký</button>
+      </form>
+    </div>
   );
 };
 
