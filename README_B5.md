@@ -1,5 +1,21 @@
 # Buổi 5 – Ứng dụng hoàn chỉnh cơ bản với Authentication & User Management
 
+## ✅ Trạng thái thực hiện
+- Hoạt động 1 (Authentication): Done
+- Hoạt động 2 (Profile - View/Update): Done
+- Hoạt động 3 (User Management - Admin): Done
+
+Các file backend đã được triển khai / cập nhật liên quan:
+- `Backend/controllers/authController.js` (signup/login/logout)
+- `Backend/routes/auth.js`
+- `Backend/models/user.js` (thêm `avatar`, `updatedAt`)
+- `Backend/controllers/userController.js` (getProfile, updateProfile, getUsers, updateUser, deleteUser)
+- `Backend/routes/profile.js`
+- `Backend/routes/user.js` (bảo vệ route, admin-only)
+- `Backend/middleware/auth.js` (token -> req.user)
+- `Backend/middleware/role.js` (requireRole middleware)
+
+
 ## 🎯 Mục tiêu
 - Sinh viên thực hành xây dựng ứng dụng web hoàn chỉnh với Authentication & User Management.
 - Sử dụng Node.js (backend), MongoDB (database), React (frontend).
