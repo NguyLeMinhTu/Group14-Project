@@ -15,7 +15,6 @@ exports.getUsers = async (req, res) => {
     try {
         const users = await User.find(); // Tìm tất cả users
         res.json(users.map(sanitize));
-        res.json(users.map(sanitize));
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -31,23 +30,10 @@ exports.createUser = async (req, res) => {
         if (existing) return res.status(400).json({ message: 'Email already in use' });
 
         const hash = await bcrypt.hash(password, 10);
-        const user = new User({ name, email, password: hash, role: role || 'user' });
+        // For public signup, always assign 'user' role to prevent privilege escalation.
+        const user = new User({ name, email, password: hash, role: 'user' });
         const newUser = await user.save();
         res.status(201).json(sanitize(newUser));
-        try {
-            const { name, email, password, role } = req.body;
-            if (!name || !email || !password) return res.status(400).json({ message: 'name, email and password required' });
-
-            const existing = await User.findOne({ email });
-            if (existing) return res.status(400).json({ message: 'Email already in use' });
-
-            const hash = await bcrypt.hash(password, 10);
-            const user = new User({ name, email, password: hash, role: role || 'user' });
-            const newUser = await user.save();
-            res.status(201).json(sanitize(newUser));
-        } catch (err) {
-            res.status(400).json({ message: err.message });
-        }
     } catch (err) {
         res.status(400).json({ message: err.message });
     }
@@ -63,12 +49,7 @@ exports.updateUser = async (req, res) => {
         if (req.body.email) user.email = req.body.email;
         if (req.body.password) user.password = await bcrypt.hash(req.body.password, 10);
         if (req.body.role) user.role = req.body.role;
-        if (req.body.name) user.name = req.body.name;
-        if (req.body.email) user.email = req.body.email;
-        if (req.body.password) user.password = await bcrypt.hash(req.body.password, 10);
-        if (req.body.role) user.role = req.body.role;
         const updatedUser = await user.save();
-        res.json(sanitize(updatedUser));
         res.json(sanitize(updatedUser));
     } catch (err) {
         res.status(400).json({ message: err.message });
@@ -111,11 +92,20 @@ exports.updateProfile = async (req, res) => {
         const user = await User.findById(req.user.id);
         if (!user) return res.status(404).json({ message: 'User not found' });
 
-        const { name, avatar, password } = req.body;
+        const { name, avatar, password, email } = req.body;
         // basic validations
         if (name !== undefined) {
             if (typeof name !== 'string' || name.trim().length < 2) return res.status(400).json({ message: 'Invalid name' });
             user.name = name.trim();
+        }
+        if (email !== undefined) {
+            if (typeof email !== 'string' || !email.includes('@')) return res.status(400).json({ message: 'Invalid email' });
+            // if email changed, ensure not used by another user
+            if (email !== user.email) {
+                const existing = await User.findOne({ email });
+                if (existing) return res.status(400).json({ message: 'Email already in use' });
+                user.email = email;
+            }
         }
         if (avatar !== undefined) {
             if (typeof avatar !== 'string') return res.status(400).json({ message: 'Invalid avatar' });
