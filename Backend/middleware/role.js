@@ -1,7 +1,12 @@
-const requireRole = (role) => {
+const requireRole = (required) => {
     return (req, res, next) => {
         if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
-        if (req.user.role !== role) return res.status(403).json({ message: 'Forbidden: insufficient role' });
+        const userRole = req.user.role;
+        if (Array.isArray(required)) {
+            if (!required.includes(userRole)) return res.status(403).json({ message: 'Forbidden: insufficient role' });
+        } else {
+            if (userRole !== required) return res.status(403).json({ message: 'Forbidden: insufficient role' });
+        }
         next();
     };
 };
