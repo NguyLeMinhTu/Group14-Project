@@ -6,6 +6,21 @@ export default function DemoRefresh() {
   const [log, setLog] = useState([]);
   const append = (text) => setLog(l => [text, ...l].slice(0, 20));
 
+  // Listen for global auth refresh events so we can show them in the demo log
+  React.useEffect(() => {
+    const onStart = () => append('[auth] refresh:start');
+    const onSuccess = (e) => append('[auth] refresh:success');
+    const onFail = (e) => append(`[auth] refresh:fail: ${e?.detail?.message || ''}`);
+    window.addEventListener('auth:refresh:start', onStart);
+    window.addEventListener('auth:refresh:success', onSuccess);
+    window.addEventListener('auth:refresh:fail', onFail);
+    return () => {
+      window.removeEventListener('auth:refresh:start', onStart);
+      window.removeEventListener('auth:refresh:success', onSuccess);
+      window.removeEventListener('auth:refresh:fail', onFail);
+    };
+  }, []);
+
   const callProtected = async () => {
     append('Calling /profile (protected)...');
     try {

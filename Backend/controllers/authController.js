@@ -31,12 +31,12 @@ exports.signup = async (req, res) => {
         const expiresAt = new Date(Date.now() + REFRESH_EXPIRES_DAYS * 24 * 60 * 60 * 1000);
         await RefreshToken.create({ user: user._id, token: refreshToken, expiresAt });
 
-    // set httpOnly cookies. For local development we allow sameSite lax and secure=false.
-    const cookieOptions = { httpOnly: true, sameSite: 'lax' };
-    // If FRONTEND_ORIGIN explicitly set and contains a host, we could set cookie domain.
-    if (process.env.NODE_ENV === 'production') cookieOptions.secure = true;
-    res.cookie('token', accessToken, cookieOptions);
-    res.cookie('refreshToken', refreshToken, cookieOptions);
+        // set httpOnly cookies. For local development we allow sameSite lax and secure=false.
+        const cookieOptions = { httpOnly: true, sameSite: 'lax' };
+        // If FRONTEND_ORIGIN explicitly set and contains a host, we could set cookie domain.
+        if (process.env.NODE_ENV === 'production') cookieOptions.secure = true;
+        res.cookie('token', accessToken, cookieOptions);
+        res.cookie('refreshToken', refreshToken, cookieOptions);
         res.status(201).json({ message: 'User created', token: accessToken });
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -61,11 +61,11 @@ exports.login = async (req, res) => {
         // persist refresh token (allow multiple devices)
         await RefreshToken.create({ user: user._id, token: refreshToken, expiresAt });
 
-    // send cookies
-    const cookieOptions2 = { httpOnly: true, sameSite: 'lax' };
-    if (process.env.NODE_ENV === 'production') cookieOptions2.secure = true;
-    res.cookie('token', accessToken, cookieOptions2);
-    res.cookie('refreshToken', refreshToken, cookieOptions2);
+        // send cookies
+        const cookieOptions2 = { httpOnly: true, sameSite: 'lax' };
+        if (process.env.NODE_ENV === 'production') cookieOptions2.secure = true;
+        res.cookie('token', accessToken, cookieOptions2);
+        res.cookie('refreshToken', refreshToken, cookieOptions2);
         res.json({ message: 'Login successful', token: accessToken });
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -92,6 +92,10 @@ exports.logout = (req, res) => {
 // Accepts refresh token from cookie, body or Authorization header and returns a new access token.
 exports.refresh = async (req, res) => {
     try {
+        // Debug logging: show incoming tokens and cookies to help trace refresh calls
+        try {
+            console.log('[auth] POST /auth/refresh called - cookies:', req.cookies, 'body:', req.body, 'authHeader:', req.headers && req.headers.authorization);
+        } catch (e) { }
         let token = null;
         if (req.cookies && req.cookies.refreshToken) token = req.cookies.refreshToken;
         if (!token && req.body && req.body.refreshToken) token = req.body.refreshToken;
@@ -125,9 +129,9 @@ exports.refresh = async (req, res) => {
         const accessToken = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: ACCESS_EXPIRES_IN });
         // Optionally rotate refresh token: here we keep the same refresh token until expiry.
 
-    const cookieOptions3 = { httpOnly: true, sameSite: 'lax' };
-    if (process.env.NODE_ENV === 'production') cookieOptions3.secure = true;
-    res.cookie('token', accessToken, cookieOptions3);
+        const cookieOptions3 = { httpOnly: true, sameSite: 'lax' };
+        if (process.env.NODE_ENV === 'production') cookieOptions3.secure = true;
+        res.cookie('token', accessToken, cookieOptions3);
         res.json({ message: 'Token refreshed', token: accessToken });
     } catch (err) {
         res.status(500).json({ message: err.message });

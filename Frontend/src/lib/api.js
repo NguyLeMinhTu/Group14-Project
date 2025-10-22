@@ -8,6 +8,10 @@ const api = axios.create({
     withCredentials: true, // send cookies (refresh token) for refresh endpoint
 });
 
+// Simple refresh lock so concurrent 401s wait for a single refresh call
+let isRefreshing = false;
+let refreshPromise = null;
+
 const ACCESS_KEY = 'accessToken';
 const LEGACY_KEY = 'token';
 
@@ -42,16 +46,31 @@ export function clearAuth() {
 // Attempt to refresh access token by calling backend POST /auth/refresh
 export async function refreshAccessToken() {
     try {
+        console.log('[api] refreshAccessToken: attempting to refresh');
+        // notify UI that a refresh attempt started
+        try {
+            window.dispatchEvent(new CustomEvent('auth:refresh:start'));
+        } catch (e) {
+            /* ignore if window not available */
+        }
         const res = await api.post('/auth/refresh');
         const { token } = res.data || {};
         if (token) {
             setAccessToken(token);
+            console.log('[api] refreshAccessToken: refresh successful');
+            try {
+                window.dispatchEvent(new CustomEvent('auth:refresh:success', { detail: { token } }));
+            } catch (e) { }
             return token;
         }
         throw new Error('No token in refresh response');
     } catch (err) {
         // refresh failed
         removeAccessToken();
+        console.log('[api] refreshAccessToken: refresh failed', err && err.message ? err.message : err);
+        try {
+            window.dispatchEvent(new CustomEvent('auth:refresh:fail', { detail: { message: err && err.message ? err.message : String(err) } }));
+        } catch (e) { }
         throw err;
     }
 }
@@ -75,7 +94,22 @@ api.interceptors.response.use(
         if (status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;
             try {
-                const newToken = await refreshAccessToken();
+                // If a refresh is already in progress wait for it instead of issuing another
+                if (isRefreshing) {
+                    console.log('[api] response interceptor: waiting for ongoing refresh for', originalRequest?.url);
+                    await refreshPromise;
+                } else {
+                    console.log('[api] response interceptor: initiating refresh for', originalRequest?.url);
+                    isRefreshing = true;
+                    refreshPromise = refreshAccessToken().finally(() => {
+                        isRefreshing = false;
+                        refreshPromise = null;
+                    });
+                    await refreshPromise;
+                }
+
+                const newToken = getAccessToken();
+                if (!newToken) throw new Error('No token available after refresh');
                 // set auth header for the retried request
                 originalRequest.headers = originalRequest.headers || {};
                 originalRequest.headers.Authorization = `Bearer ${newToken}`;
