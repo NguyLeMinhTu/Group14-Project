@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api, { setAccessToken } from '../lib/api';
 import { useNavigate, Link } from 'react-router-dom';
 import { LogIn, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 
@@ -18,14 +18,14 @@ const Login = ({ onAuth }) => {
     setError('');
     setIsLoading(true);
     try {
-      const res = await axios.post(`${API_BASE}/auth/login`, { email, password });
-      const { token } = res.data;
+      const res = await api.post('/auth/login', { email, password });
+      const { token } = res.data || {};
       if (token) {
         if (onAuth) {
           onAuth(token);
         } else {
-          localStorage.setItem('token', token);
-          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          setAccessToken(token);
+          // redirect to home
           window.location.href = '/';
         }
       } else {
