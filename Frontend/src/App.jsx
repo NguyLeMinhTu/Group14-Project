@@ -17,7 +17,7 @@ function App() {
   const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
-        const init = async () => {
+    const init = async () => {
       // set axios auth header if token in localStorage
       setAuthFromLocalStorage();
       if (!token) return;
@@ -25,7 +25,7 @@ function App() {
         // fetch current user profile first
         const res = await axios.get('/profile');
         setCurrentUser(res.data || null);
-            // Admin-specific user listing is handled in the admin route/component
+        // Admin-specific user listing is handled in the admin route/component
       } catch (err) {
         // if token invalid or expired, clear auth and redirect to login
         console.info('Profile fetch failed, clearing auth', err?.response?.status);
@@ -34,7 +34,7 @@ function App() {
         setToken(null);
         setCurrentUser(null);
         // optionally redirect to login
-            // window.location.href = '/login';
+        // window.location.href = '/login';
       }
     };
     init();
