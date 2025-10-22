@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../lib/api';
 import { useNavigate } from 'react-router-dom';
 import { LogIn, Key } from 'lucide-react';
 import BackButton from './BackButton';
@@ -20,7 +20,7 @@ const AuthForm = ({ onAuth }) => {
         setError('');
         setLoading(true);
         try {
-            const res = await axios.post(`${API_BASE}/auth/login`, { email, password });
+            const res = await api.post('/auth/login', { email, password });
             const token = res.data?.token;
             if (!token) throw new Error('Không nhận được token');
             if (onAuth) onAuth(token);
@@ -36,7 +36,7 @@ const AuthForm = ({ onAuth }) => {
         setError('');
         setLoading(true);
         try {
-            const res = await axios.post(`${API_BASE}/auth/forgot-password`, { email });
+            const res = await api.post('/auth/forgot-password', { email });
             const token = res.data?.resetToken;
             setResetMessage(token ? `Reset token (demo): ${token}` : (res.data?.message || 'Yêu cầu đã gửi'));
         } catch (err) {

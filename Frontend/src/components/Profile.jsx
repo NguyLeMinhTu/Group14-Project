@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { setAuthFromLocalStorage } from '../lib/api';
+import api, { setAuthFromLocalStorage, clearAuth } from '../lib/api';
 import { LogOut, Trash2, UploadCloud, User, Mail, Lock, Camera, Link as LinkIcon, Save, ArrowLeft } from 'lucide-react';
+import DemoRefresh from './DemoRefresh';
 import { Link } from 'react-router-dom';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000';
@@ -21,7 +21,7 @@ const Profile = () => {
   const fetchProfile = async () => {
     try {
       setAuthFromLocalStorage();
-      const res = await axios.get(`/profile`);
+      const res = await api.get(`/profile`);
       const user = res.data;
       setName(user.name || '');
       setEmail(user.email || '');
@@ -43,8 +43,8 @@ const Profile = () => {
     try {
       const body = { name, email };
       if (password) body.password = password;
-      setAuthFromLocalStorage();
-      const res = await axios.put(`/profile`, body);
+  setAuthFromLocalStorage();
+  const res = await api.put(`/profile`, body);
       setMessage(res.data.message || 'Cập nhật thông tin thành công!');
       setPassword('');
       // refresh avatar/name/email
@@ -69,8 +69,8 @@ const Profile = () => {
     try {
       const form = new FormData();
       form.append('avatar', file);
-      setAuthFromLocalStorage();
-      const res = await axios.post(`/profile/upload-avatar`, form, { headers: { 'Content-Type': 'multipart/form-data' } });
+  setAuthFromLocalStorage();
+  const res = await api.post(`/profile/upload-avatar`, form, { headers: { 'Content-Type': 'multipart/form-data' } });
       setAvatar(res.data.avatar || res.data.avatarUrl || '');
       setMessage('Upload avatar thành công');
       setFile(null);
@@ -87,8 +87,8 @@ const Profile = () => {
     setError('');
     setIsUploading(true);
     try {
-      setAuthFromLocalStorage();
-      const res = await axios.post(`/profile/upload-avatar`, { avatarUrl: url });
+  setAuthFromLocalStorage();
+  const res = await api.post(`/profile/upload-avatar`, { avatarUrl: url });
       setAvatar(res.data.avatar || '');
       setMessage('Avatar cập nhật từ URL thành công');
     } catch (err) {
@@ -102,13 +102,12 @@ const Profile = () => {
     if (!userId) return setError('Không xác định user');
     if (!confirm('Bạn có chắc muốn xóa tài khoản này? Hành động không thể hoàn tác.')) return;
     try {
-      setAuthFromLocalStorage();
-      await axios.delete(`/users/${userId}`);
-      // logout after delete
-      await axios.post(`/auth/logout`).catch(() => { });
-      localStorage.removeItem('token');
-      delete axios.defaults.headers.common['Authorization'];
-      window.location.href = '/login';
+  setAuthFromLocalStorage();
+  await api.delete(`/users/${userId}`);
+  // logout after delete
+  await api.post(`/auth/logout`).catch(() => { });
+  clearAuth();
+  window.location.href = '/login';
     } catch (err) {
       setError(err.response?.data?.message || 'Xóa tài khoản thất bại');
     }
@@ -117,12 +116,11 @@ const Profile = () => {
   const handleLogout = async () => {
     try {
       setAuthFromLocalStorage();
-      await axios.post(`/auth/logout`);
+      await api.post(`/auth/logout`);
     } catch (err) {
       // ignore
     }
-    localStorage.removeItem('token');
-    delete axios.defaults.headers.common['Authorization'];
+    clearAuth();
     window.location.href = '/login';
   };
 
@@ -342,6 +340,9 @@ const Profile = () => {
                       Xóa tài khoản
                     </div>
                   </button>
+                </div>
+                <div className="mt-6">
+                  <DemoRefresh />
                 </div>
               </div>
             </div>
