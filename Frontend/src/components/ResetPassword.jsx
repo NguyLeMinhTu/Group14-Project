@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import axios from '../lib/api';
 import { useLocation, Link } from 'react-router-dom';
 import { Key, Lock, Hash, ArrowLeft, CheckCircle } from 'lucide-react';
 
@@ -33,13 +33,15 @@ const ResetPassword = () => {
       return;
     }
 
-    setIsLoading(true);
-    try {
-      const res = await axios.post(`${API_BASE}/auth/reset-password`, { token, password: newPassword });
-      setMessage(res.data.message || 'Đổi mật khẩu thành công!');
+      setIsLoading(true);
+      try {
+        // Prefer sending token in body; backend also supports token in URL param
+        const res = await axios.post(`/auth/reset-password`, { token, password: newPassword });
+        setMessage(res.data.message || 'Đổi mật khẩu thành công!');
       setIsSuccess(true);
     } catch (err) {
-      setError(err.response?.data?.message || 'Đổi mật khẩu thất bại');
+        console.error('ResetPassword error:', err);
+        setError(err.response?.data?.message || err.message || 'Đổi mật khẩu thất bại');
     } finally {
       setIsLoading(false);
     }
