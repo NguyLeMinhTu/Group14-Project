@@ -45,7 +45,7 @@ app.get('/health', (req, res) => {
 	res.json({ status: 'ok', routes: ['/users', '/auth', '/profile', '/logs'] });
 });
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
 	console.log(`Server running on port ${PORT}`);
 	// Helpful debug: list mounted routes (approx)

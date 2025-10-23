@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Home, User, Shield, LogOut, Menu, X, UserCircle, ShieldUser } from 'lucide-react';
+import { Home, User, Shield, LogOut, Menu, X, UserCircle, ShieldUser, FileText } from 'lucide-react';
 
 const Navbar = ({ currentUser, onLogout }) => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -50,6 +50,15 @@ const Navbar = ({ currentUser, onLogout }) => {
                             >
                                 <Shield className="w-4 h-4" />
                                 Quản trị
+                            </Link>
+                        )}
+                        {currentUser?.role === 'admin' && (
+                            <Link
+                                to="/admin/logs"
+                                className="flex items-center gap-2 text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-lg hover:bg-indigo-50 transition-all duration-200 font-medium"
+                            >
+                                <FileText className="w-4 h-4" />
+                                Logs
                             </Link>
                         )}
                     </div>
