@@ -32,6 +32,14 @@ app.use('/auth', authRouter);
 const profileRouter = require('./routes/profile');
 app.use('/profile', profileRouter);
 
+// request logger (lightweight)
+const { requestLogger } = require('./middleware/logger');
+app.use(requestLogger({ skipPaths: ['/auth'] }));
+
+// admin logs route
+const logsRouter = require('./routes/logs');
+app.use('/logs', logsRouter);
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 

@@ -1,6 +1,7 @@
 const User = require('../models/user');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const { logActivity } = require('../middleware/logger');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
 const JWT_EXPIRES_IN = '7d';
@@ -33,6 +34,9 @@ exports.login = async (req, res) => {
         const { email, password } = req.body;
         if (!email || !password) return res.status(400).json({ message: 'email and password required' });
 
+        // Log login attempt (anonymous)
+        logActivity({ type: 'login_attempt', message: 'Login attempt', req, meta: { email } });
+
         const user = await User.findOne({ email });
         if (!user) return res.status(400).json({ message: 'Invalid credentials' });
 
@@ -41,6 +45,8 @@ exports.login = async (req, res) => {
 
         const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
         res.cookie('token', token, { httpOnly: true });
+        // Log successful login
+        logActivity({ userId: user._id, type: 'login_success', message: 'User logged in', req });
         res.json({ message: 'Login successful', token });
     } catch (err) {
         res.status(500).json({ message: err.message });
