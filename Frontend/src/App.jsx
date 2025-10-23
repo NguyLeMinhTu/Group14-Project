@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { setAuthFromLocalStorage } from './lib/api';
+import { setAuthFromLocalStorage, clearAuth } from './lib/api';
 // UserList and AddUser were removed from the root route in favor of the Profile page
 import AuthForm from './components/AuthForm';
 import Register from './components/Register';
 import Profile from './components/Profile';
 import AdminUserList from './components/AdminUserList';
+import ModeratorPanel from './components/ModeratorPanel';
 import ForgotPassword from './components/ForgotPassword';
 import ResetPassword from './components/ResetPassword';
 import Navbar from './components/Navbar';
@@ -29,8 +30,7 @@ function App() {
       } catch (err) {
         // if token invalid or expired, clear auth and redirect to login
         console.info('Profile fetch failed, clearing auth', err?.response?.status);
-        localStorage.removeItem('token');
-        delete axios.defaults.headers.common['Authorization'];
+        clearAuth();
         setToken(null);
         setCurrentUser(null);
         // optionally redirect to login
@@ -46,9 +46,9 @@ function App() {
     } catch (err) {
       // ignore
     }
-    localStorage.removeItem('token');
-    delete axios.defaults.headers.common['Authorization'];
+    clearAuth();
     setToken(null);
+    setCurrentUser(null);
     navigate('/login');
   };
 
@@ -65,7 +65,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {token && <Navbar currentUser={currentUser} onLogout={handleLogout} />}
+      {currentUser && <Navbar currentUser={currentUser} onLogout={handleLogout} />}
 
       <main className={token ? 'app-main p-6' : 'flex items-center justify-center min-h-screen p-6'}>
         <div className={token ? 'w-full' : 'w-full max-w-md'}>
@@ -75,7 +75,8 @@ function App() {
             <Route path="/profile" element={token ? <Profile /> : <AuthForm onAuth={handleAuth} />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/admin" element={token ? <AdminUserList /> : <AuthForm onAuth={handleAuth} />} />
+            <Route path="/admin" element={currentUser?.role === 'admin' ? <AdminUserList /> : <AuthForm onAuth={handleAuth} />} />
+            <Route path="/moderator" element={(currentUser?.role === 'moderator' || currentUser?.role === 'admin') ? <ModeratorPanel /> : <AuthForm onAuth={handleAuth} />} />
             <Route path="/" element={token ? <Profile /> : <AuthForm onAuth={handleAuth} />} />
           </Routes>
         </div>

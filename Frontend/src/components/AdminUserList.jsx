@@ -186,9 +186,9 @@ const AdminUserList = () => {
               </div>
             </div>
 
-            {/* Bulk Actions */}
+            {/* Bulk Actions (only for admins) */}
             <div className="flex items-center gap-3">
-              {selectedUsers.length > 0 && (
+              {isAdmin && selectedUsers.length > 0 && (
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-600">
                     Đã chọn {selectedUsers.length} người dùng
@@ -306,13 +306,17 @@ const AdminUserList = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleDelete(user._id || user.id)}
-                          className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50 transition-colors"
-                          title="Xóa"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {isAdmin ? (
+                          <button
+                            onClick={() => handleDelete(user._id || user.id)}
+                            className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50 transition-colors"
+                            title="Xóa"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          <span className="text-sm text-gray-400">—</span>
+                        )}
                       </div>
                     </td>
                   </tr>
