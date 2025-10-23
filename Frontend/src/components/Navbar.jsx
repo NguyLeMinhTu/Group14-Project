@@ -52,6 +52,15 @@ const Navbar = ({ currentUser, onLogout }) => {
                                 Quản trị
                             </Link>
                         )}
+                        {currentUser?.role === 'moderator' && (
+                            <Link
+                                to="/moderator"
+                                className="flex items-center gap-2 text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-lg hover:bg-indigo-50 transition-all duration-200 font-medium"
+                            >
+                                <Shield className="w-4 h-4" />
+                                Moderator
+                            </Link>
+                        )}
                     </div>
 
                     {/* User Menu */}
