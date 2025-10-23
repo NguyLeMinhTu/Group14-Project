@@ -2,6 +2,7 @@ const User = require('../models/user'); // Import model User
 const bcrypt = require('bcrypt');
 const cloudinary = require('../config/cloudinaryConfig');
 const streamifier = require('streamifier');
+const sharp = require('sharp');
 
 // Helper to remove sensitive fields
 function sanitize(user) {
@@ -151,7 +152,13 @@ exports.uploadAvatarFile = async (req, res) => {
         const user = await User.findById(req.user.id);
         if (!user) return res.status(404).json({ message: 'User not found' });
 
-        const bufferStream = streamifier.createReadStream(req.file.buffer);
+        // Resize and convert to jpeg using sharp (256x256)
+        const resizedBuffer = await sharp(req.file.buffer)
+            .resize(256, 256, { fit: 'cover' })
+            .jpeg({ quality: 80 })
+            .toBuffer();
+
+        const bufferStream = streamifier.createReadStream(resizedBuffer);
 
         const uploadStream = cloudinary.uploader.upload_stream({ folder: 'avatars', resource_type: 'image' }, async (error, result) => {
             if (error) {
