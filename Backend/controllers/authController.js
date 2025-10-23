@@ -96,3 +96,86 @@ exports.resetPassword = async (req, res) => {
         res.status(500).json({ message: err.message });
     }
 };
+
+// Check if authenticated user has a named permission
+// Accepts JSON body { permission: string, targetId?: string } or query params
+exports.checkPermission = async (req, res) => {
+    try {
+        if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+
+        // Support permission from body, query, or header (X-Permission)
+        const permission = (req.body && req.body.permission) || req.query.permission || req.get('x-permission') || req.get('permission');
+        const targetId = (req.body && req.body.targetId) || req.query.targetId;
+        if (!permission) return res.status(400).json({ message: 'permission is required' });
+
+        // Small permission map. Values may be a string (minimum role),
+        // or an object { required: string, allowSelf: boolean }
+        const permissions = {
+            'user:read': 'user',
+            // users may update themselves; moderators and above may update any user
+            'user:update': { required: 'user', allowSelf: true, escalate: 'moderator' },
+            'user:delete': 'admin',
+            'post:create': 'user',
+            'post:moderate': 'moderator'
+        };
+
+        // If permission missing, return available permissions for convenience
+        if (!permission) {
+            return res.status(400).json({ message: 'permission is required', availablePermissions: Object.keys(permissions) });
+        }
+
+        const roleHierarchy = ['user', 'moderator', 'admin'];
+
+        const permEntry = permissions[permission];
+        if (!permEntry) return res.status(400).json({ message: 'Unknown permission' });
+
+        const userRole = req.user.role;
+
+        // handle object entry
+        let required = null;
+        let allowSelf = false;
+        let escalate = null;
+        if (typeof permEntry === 'string') {
+            required = permEntry;
+        } else if (typeof permEntry === 'object') {
+            required = permEntry.required || null;
+            allowSelf = !!permEntry.allowSelf;
+            escalate = permEntry.escalate || null;
+        }
+
+        // allow self if requested and targetId matches
+        if (allowSelf && targetId && targetId === req.user.id) {
+            return res.json({ permission, allowed: true, reason: 'self' });
+        }
+
+        // If escalate role is present and user's role meets escalate, allow
+        if (escalate && roleHierarchy.indexOf(userRole) >= roleHierarchy.indexOf(escalate)) {
+            return res.json({ permission, allowed: true, reason: 'escalated role' });
+        }
+
+        // Evaluate required role. Support formats like '>=moderator' or plain role name
+        if (!required) return res.status(500).json({ message: 'Permission configuration error' });
+
+        // >= operator
+        if (typeof required === 'string' && required.startsWith('>=')) {
+            const minRole = required.slice(2);
+            const minIdx = roleHierarchy.indexOf(minRole);
+            const userIdx = roleHierarchy.indexOf(userRole);
+            const allowed = minIdx !== -1 && userIdx !== -1 && userIdx >= minIdx;
+            return res.json({ permission, allowed, required });
+        }
+
+        // plain role name -> treat as minimum role
+        if (typeof required === 'string' && roleHierarchy.includes(required)) {
+            const minIdx = roleHierarchy.indexOf(required);
+            const userIdx = roleHierarchy.indexOf(userRole);
+            const allowed = userIdx !== -1 && userIdx >= minIdx;
+            return res.json({ permission, allowed, required });
+        }
+
+        // fallback: deny
+        return res.json({ permission, allowed: false, required });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
