@@ -52,7 +52,9 @@ exports.logout = (req, res) => {
     res.json({ message: 'Logged out' });
 };
 
-// Demo: generate reset token and (in production) send by email
+// Demo: generate reset token and send by email using nodemailer (Gmail SMTP)
+const mailer = require('../config/mailer');
+
 exports.forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
@@ -62,9 +64,32 @@ exports.forgotPassword = async (req, res) => {
         if (!user) return res.status(404).json({ message: 'Email not found' });
 
         const resetToken = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: RESET_EXPIRES_IN });
-        // TODO: send resetToken via email to user.email (use nodemailer or external service)
-        // For demo/testing we return the token in the response. In production, do NOT return token in body.
-        res.json({ message: 'Reset token generated (demo)', resetToken });
+
+        // Build reset URL (for demo we just include token in email body)
+        const resetUrl = `${process.env.FRONTEND_ORIGIN || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
+
+        // Send email (if transporter configured)
+        const mailOptions = {
+            from: process.env.GMAIL_USER,
+            to: user.email,
+            subject: 'Password reset request',
+            text: `You requested a password reset. Use this link to reset your password (valid for ${RESET_EXPIRES_IN}): ${resetUrl}`,
+            html: `<p>You requested a password reset. Click the link below to reset your password (valid for ${RESET_EXPIRES_IN}):</p><p><a href="${resetUrl}">${resetUrl}</a></p>`
+        };
+
+        mailer.sendMail(mailOptions, (err, info) => {
+            if (err) {
+                console.error('Forgot password email error:', err.message);
+                // fallback: still return token in dev so testing can proceed
+                const resp = { message: 'Reset token generated (email failed)', resetToken };
+                if (process.env.NODE_ENV === 'production') delete resp.resetToken;
+                return res.json(resp);
+            }
+            console.log('Forgot password email sent:', info && info.response);
+            const resp = { message: 'Reset email sent' };
+            if (process.env.NODE_ENV !== 'production') resp.resetToken = resetToken;
+            return res.json(resp);
+        });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -73,7 +98,9 @@ exports.forgotPassword = async (req, res) => {
 // Reset password with token
 exports.resetPassword = async (req, res) => {
     try {
-        const { token, password } = req.body;
+        // support token in body or in URL param
+        const token = (req.body && req.body.token) || req.params && req.params.token;
+        const { password } = req.body;
         if (!token || !password) return res.status(400).json({ message: 'token and new password required' });
 
         let payload;
