@@ -38,10 +38,18 @@ exports.login = async (req, res) => {
         logActivity({ type: 'login_attempt', message: 'Login attempt', req, meta: { email } });
 
         const user = await User.findOne({ email });
-        if (!user) return res.status(400).json({ message: 'Invalid credentials' });
+        if (!user) {
+            // Log failed attempt (user not found)
+            try { await logActivity({ userId: null, type: 'login_failed', message: 'Login failed - user not found', req, meta: { email } }); } catch (e) { }
+            return res.status(400).json({ message: 'Invalid credentials' });
+        }
 
         const ok = await bcrypt.compare(password, user.password);
-        if (!ok) return res.status(400).json({ message: 'Invalid credentials' });
+        if (!ok) {
+            // Log failed attempt (wrong password)
+            try { await logActivity({ userId: user._id, type: 'login_failed', message: 'Login failed - wrong password', req, meta: { email } }); } catch (e) { }
+            return res.status(400).json({ message: 'Invalid credentials' });
+        }
 
         const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
         res.cookie('token', token, { httpOnly: true });

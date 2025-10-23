@@ -37,3 +37,18 @@ function requestLogger(options = {}) {
 }
 
 module.exports = { logActivity, requestLogger };
+// Middleware factory: logActivityMiddleware(action)
+// Usage: app.post('/some', logActivityMiddleware('some_action'), handler)
+function logActivityMiddleware(action = 'activity') {
+    return async (req, res, next) => {
+        try {
+            const userId = req.user ? req.user.id : null;
+            await logActivity({ userId, type: action, message: `${action} via middleware`, req });
+        } catch (err) {
+            console.error('logActivityMiddleware error', err);
+        }
+        next();
+    };
+}
+
+module.exports.logActivityMiddleware = logActivityMiddleware;
