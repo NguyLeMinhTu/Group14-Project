@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
 import { Home, User, Shield, LogOut, Menu, X, UserCircle, ShieldUser } from 'lucide-react';
+import { logout as logoutAction } from '../store/authSlice';
 
-const Navbar = ({ currentUser, onLogout }) => {
+const Navbar = ({ onLogout }) => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const dispatch = useDispatch();
+    const { user: currentUser } = useSelector((s) => s.auth);
 
     const toggleMobileMenu = () => {
         setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -63,7 +67,7 @@ const Navbar = ({ currentUser, onLogout }) => {
                                     <span className="text-sm font-medium text-gray-700">Xin chào, {currentUser.name}</span>
                                 </div>
                                 <button
-                                    onClick={onLogout}
+                                    onClick={onLogout || (() => dispatch(logoutAction()))}
                                     className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
                                 >
                                     <LogOut className="w-4 h-4" />

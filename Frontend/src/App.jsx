@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { setAuthFromLocalStorage } from './lib/api';
-// UserList and AddUser were removed from the root route in favor of the Profile page
+import { useDispatch, useSelector } from 'react-redux';
+import { setTokenFromStorage, fetchProfile, logout as logoutAction } from './store/authSlice';
 import AuthForm from './components/AuthForm';
 import Register from './components/Register';
 import Profile from './components/Profile';
@@ -11,72 +11,67 @@ import ForgotPassword from './components/ForgotPassword';
 import ResetPassword from './components/ResetPassword';
 import Navbar from './components/Navbar';
 import { Routes, Route } from 'react-router-dom';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
-  const [token, setToken] = useState(localStorage.getItem('token') || null);
-  const [currentUser, setCurrentUser] = useState(null);
+  const dispatch = useDispatch();
+  const { token } = useSelector((s) => s.auth);
 
   useEffect(() => {
-    const init = async () => {
-      // set axios auth header if token in localStorage
-      setAuthFromLocalStorage();
-      if (!token) return;
-      try {
-        // fetch current user profile first
-        const res = await axios.get('/profile');
-        setCurrentUser(res.data || null);
-        // Admin-specific user listing is handled in the admin route/component
-      } catch (err) {
-        // if token invalid or expired, clear auth and redirect to login
-        console.info('Profile fetch failed, clearing auth', err?.response?.status);
-        localStorage.removeItem('token');
-        delete axios.defaults.headers.common['Authorization'];
-        setToken(null);
-        setCurrentUser(null);
-        // optionally redirect to login
-        // window.location.href = '/login';
-      }
-    };
-    init();
-  }, [token]);
-
-  const handleLogout = async () => {
-    try {
-      await axios.post('/auth/logout');
-    } catch (err) {
-      // ignore
+    // initialize token/header from storage and fetch profile if token exists
+    dispatch(setTokenFromStorage());
+    if (localStorage.getItem('token')) {
+      dispatch(fetchProfile());
     }
-    localStorage.removeItem('token');
-    delete axios.defaults.headers.common['Authorization'];
-    setToken(null);
-    navigate('/login');
-  };
+  }, [dispatch]);
 
   const navigate = useNavigate();
 
-  // centralize what happens after successful auth (login/register)
-  const handleAuth = (t) => {
-    if (!t) return;
-    localStorage.setItem('token', t);
-    axios.defaults.headers.common['Authorization'] = `Bearer ${t}`;
-    setToken(t);
+  const handleLogout = async () => {
+    await dispatch(logoutAction());
+    navigate('/login');
+  };
+
+  // navigation helper passed to Auth components (they call thunks themselves)
+  const handleAuth = () => {
     navigate('/');
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {token && <Navbar currentUser={currentUser} onLogout={handleLogout} />}
+      {token && <Navbar onLogout={handleLogout} />}
 
       <main className={token ? 'app-main p-6' : 'flex items-center justify-center min-h-screen p-6'}>
         <div className={token ? 'w-full' : 'w-full max-w-md'}>
           <Routes>
             <Route path="/login" element={<AuthForm onAuth={handleAuth} />} />
             <Route path="/register" element={<Register onAuth={handleAuth} />} />
-            <Route path="/profile" element={token ? <Profile /> : <AuthForm onAuth={handleAuth} />} />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/admin" element={token ? <AdminUserList /> : <AuthForm onAuth={handleAuth} />} />
-            <Route path="/" element={token ? <Profile /> : <AuthForm onAuth={handleAuth} />} />
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                  <AdminUserList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
           </Routes>
         </div>
       </main>

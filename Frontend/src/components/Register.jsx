@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import { useDispatch } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
 import { UserPlus, Mail, Lock, User, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import BackButton from './BackButton';
-
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000';
+import { signup } from '../store/authSlice';
 
 const Register = ({ onAuth }) => {
   const [email, setEmail] = useState('');
@@ -13,27 +12,20 @@ const Register = ({ onAuth }) => {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
     try {
-      const res = await axios.post(`${API_BASE}/auth/signup`, { name, email, password });
-      const { token } = res.data;
-      if (token) {
-        if (onAuth) {
-          onAuth(token);
-        } else {
-          localStorage.setItem('token', token);
-          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-          window.location.href = '/';
-        }
-      } else {
-        setError('Đăng ký thành công nhưng không nhận token');
-      }
+      const result = await dispatch(signup({ name, email, password }));
+      if (result.error) throw result.error;
+      if (onAuth) onAuth();
+      else navigate('/');
     } catch (err) {
-      setError(err.response?.data?.message || 'Đăng ký thất bại');
+      setError(err.payload?.message || err.message || 'Đăng ký thất bại');
     } finally {
       setIsLoading(false);
     }
