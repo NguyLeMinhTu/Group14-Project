@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { setAuthFromLocalStorage } from '../lib/api';
+import axios, { setAuthFromLocalStorage } from '../lib/api';
 import { LogOut, Trash2, UploadCloud, User, Mail, Lock, Camera, Link as LinkIcon, Save, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -67,10 +66,12 @@ const Profile = () => {
     setError('');
     setIsUploading(true);
     try {
-      const form = new FormData();
-      form.append('avatar', file);
-      setAuthFromLocalStorage();
-      const res = await axios.post(`/profile/upload-avatar`, form, { headers: { 'Content-Type': 'multipart/form-data' } });
+  const form = new FormData();
+  form.append('avatar', file);
+  setAuthFromLocalStorage();
+  // Do not set the Content-Type header manually for multipart/form-data —
+  // the browser/axios will add the correct boundary automatically.
+  const res = await axios.post(`/profile/upload-avatar`, form);
       setAvatar(res.data.avatar || res.data.avatarUrl || '');
       setMessage('Upload avatar thành công');
       setFile(null);
