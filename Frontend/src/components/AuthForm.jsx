@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import api from '../lib/api';
+import api, { setRefreshToken } from '../lib/api';
 import { useNavigate } from 'react-router-dom';
 import { LogIn, Key } from 'lucide-react';
 import BackButton from './BackButton';
@@ -22,6 +22,8 @@ const AuthForm = ({ onAuth }) => {
         try {
             const res = await api.post('/auth/login', { email, password });
             const token = res.data?.token;
+            const refresh = res.data?.refreshToken;
+            if (refresh) setRefreshToken(refresh);
             if (!token) throw new Error('Không nhận được token');
             if (onAuth) onAuth(token);
         } catch (err) {

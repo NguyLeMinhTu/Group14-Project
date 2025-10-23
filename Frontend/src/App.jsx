@@ -8,6 +8,7 @@ import Profile from './components/Profile';
 import AdminUserList from './components/AdminUserList';
 import ForgotPassword from './components/ForgotPassword';
 import ResetPassword from './components/ResetPassword';
+import DemoRefresh from './components/DemoRefresh';
 import Navbar from './components/Navbar';
 import { Routes, Route } from 'react-router-dom';
 
@@ -27,10 +28,10 @@ function App() {
         // Admin-specific user listing is handled in the admin route/component
       } catch (err) {
         // if token invalid or expired, clear auth and redirect to login
-  console.info('Profile fetch failed, clearing auth', err?.response?.status);
-  clearAuth();
-  setToken(null);
-  setCurrentUser(null);
+        console.info('Profile fetch failed, clearing auth', err?.response?.status);
+        clearAuth();
+        setToken(null);
+        setCurrentUser(null);
         // optionally redirect to login
         // window.location.href = '/login';
       }
@@ -68,11 +69,12 @@ function App() {
           <Routes>
             <Route path="/login" element={<AuthForm onAuth={handleAuth} />} />
             <Route path="/register" element={<Register onAuth={handleAuth} />} />
+            <Route path="/demo-refresh" element={token ? <DemoRefresh /> : <AuthForm onAuth={handleAuth} />} />
             <Route path="/profile" element={token ? <Profile /> : <AuthForm onAuth={handleAuth} />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/admin" element={token ? <AdminUserList /> : <AuthForm onAuth={handleAuth} />} />
-              <Route path="/" element={token ? <Profile /> : <AuthForm onAuth={handleAuth} />} />
+            <Route path="/" element={token ? <Profile /> : <AuthForm onAuth={handleAuth} />} />
           </Routes>
         </div>
       </main>

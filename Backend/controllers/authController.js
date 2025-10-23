@@ -37,7 +37,11 @@ exports.signup = async (req, res) => {
         if (process.env.NODE_ENV === 'production') cookieOptions.secure = true;
         res.cookie('token', accessToken, cookieOptions);
         res.cookie('refreshToken', refreshToken, cookieOptions);
-        res.status(201).json({ message: 'User created', token: accessToken });
+        // For local/dev testing we may return the refresh token in the response body so clients
+        // that cannot use cookies (or when SameSite prevents sending cookies) can still refresh.
+        const resp = { message: 'User created', token: accessToken };
+        if (process.env.NODE_ENV !== 'production') resp.refreshToken = refreshToken;
+        res.status(201).json(resp);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -66,7 +70,9 @@ exports.login = async (req, res) => {
         if (process.env.NODE_ENV === 'production') cookieOptions2.secure = true;
         res.cookie('token', accessToken, cookieOptions2);
         res.cookie('refreshToken', refreshToken, cookieOptions2);
-        res.json({ message: 'Login successful', token: accessToken });
+        const out = { message: 'Login successful', token: accessToken };
+        if (process.env.NODE_ENV !== 'production') out.refreshToken = refreshToken;
+        res.json(out);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }

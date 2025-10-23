@@ -19,6 +19,10 @@ export function getAccessToken() {
     return localStorage.getItem(ACCESS_KEY) || localStorage.getItem(LEGACY_KEY) || null;
 }
 
+export function getRefreshToken() {
+    return localStorage.getItem('refreshToken') || null;
+}
+
 export function setAccessToken(token) {
     if (token) {
         localStorage.setItem(ACCESS_KEY, token);
@@ -26,6 +30,14 @@ export function setAccessToken(token) {
         localStorage.setItem(LEGACY_KEY, token);
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     }
+}
+
+export function setRefreshToken(token) {
+    if (token) localStorage.setItem('refreshToken', token);
+}
+
+export function removeRefreshToken() {
+    localStorage.removeItem('refreshToken');
 }
 
 export function removeAccessToken() {
@@ -41,6 +53,7 @@ export function setAuthFromLocalStorage() {
 
 export function clearAuth() {
     removeAccessToken();
+    removeRefreshToken();
 }
 
 // Attempt to refresh access token by calling backend POST /auth/refresh
@@ -53,7 +66,11 @@ export async function refreshAccessToken() {
         } catch (e) {
             /* ignore if window not available */
         }
-        const res = await api.post('/auth/refresh');
+        // If server returned refresh token to client (dev mode) use it in request body when cookie not sent
+        const body = {};
+        const rt = getRefreshToken();
+        if (rt) body.refreshToken = rt;
+        const res = await api.post('/auth/refresh', body);
         const { token } = res.data || {};
         if (token) {
             setAccessToken(token);

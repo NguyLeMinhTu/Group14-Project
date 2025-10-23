@@ -1,15 +1,23 @@
-import React, { useState } from 'react';
-import api, { removeAccessToken, getAccessToken } from '../lib/api';
+import React, { useEffect, useState } from 'react';
+import api, { getAccessToken, removeAccessToken, getRefreshToken } from '../lib/api';
 
-// Demo component to show automatic refresh flow
 export default function DemoRefresh() {
   const [log, setLog] = useState([]);
-  const append = (text) => setLog(l => [text, ...l].slice(0, 20));
+  const [accessToken, setAccessToken] = useState(getAccessToken());
+  const [refreshToken, setRefreshTokenState] = useState(getRefreshToken());
+  const [loading, setLoading] = useState(false);
 
-  // Listen for global auth refresh events so we can show them in the demo log
-  React.useEffect(() => {
+  const append = (text) => setLog(l => [
+    `${new Date().toLocaleTimeString()} — ${text}`,
+    ...l
+  ].slice(0, 50));
+
+  useEffect(() => {
     const onStart = () => append('[auth] refresh:start');
-    const onSuccess = (e) => append('[auth] refresh:success');
+    const onSuccess = (e) => {
+      append('[auth] refresh:success');
+      setAccessToken(getAccessToken());
+    };
     const onFail = (e) => append(`[auth] refresh:fail: ${e?.detail?.message || ''}`);
     window.addEventListener('auth:refresh:start', onStart);
     window.addEventListener('auth:refresh:success', onSuccess);
@@ -21,37 +29,82 @@ export default function DemoRefresh() {
     };
   }, []);
 
+  useEffect(() => {
+    setRefreshTokenState(getRefreshToken());
+  }, []);
+
   const callProtected = async () => {
-    append('Calling /profile (protected)...');
+    append('Calling GET /profile (protected)...');
+    setLoading(true);
     try {
       const res = await api.get('/profile');
-      append('Profile fetched: ' + JSON.stringify({ name: res.data.name, email: res.data.email }));
+      append(`Profile fetched: ${res.data.name} <${res.data.email}>`);
     } catch (err) {
-      append('Failed: ' + (err.response?.data?.message || err.message));
+      append('Protected call failed: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setLoading(false);
     }
   };
 
   const simulateExpiry = () => {
-    // Remove local access token to simulate expiry while keeping refresh token cookie
     const t = getAccessToken();
-    if (!t) return append('No access token to remove');
+    if (!t) return append('No access token in localStorage');
     removeAccessToken();
-    append('Access token removed from localStorage (simulate expiry). Refresh cookie still present if server set it).');
+    setAccessToken(null);
+    append('Access token removed from localStorage (simulate expiry)');
   };
 
+  const forceRefresh = async () => {
+    append('Forcing refresh (POST /auth/refresh)...');
+    setLoading(true);
+    try {
+      const res = await api.post('/auth/refresh', {});
+      append('Refresh response: ' + (res.data?.message || JSON.stringify(res.data)));
+      setAccessToken(res.data?.token || null);
+    } catch (err) {
+      append('Refresh failed: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const clearLog = () => setLog([]);
+
   return (
-    <div className="bg-white/80 p-4 rounded-xl shadow-md">
-      <h3 className="text-lg font-bold mb-2">Demo: Auto refresh</h3>
-      <div className="flex gap-3 mb-3">
-        <button onClick={callProtected} className="px-3 py-2 bg-blue-600 text-white rounded">Call protected</button>
-        <button onClick={simulateExpiry} className="px-3 py-2 bg-yellow-500 text-white rounded">Simulate token expiry</button>
-      </div>
-      <div className="text-sm text-gray-700">
-        <div className="font-medium mb-1">Log:</div>
-        <div className="max-h-48 overflow-auto bg-gray-50 p-2 rounded">
-          {log.length === 0 && <div className="text-gray-400">No entries yet.</div>}
-          {log.map((l, i) => <div key={i} className="py-1 border-b border-gray-100">{l}</div>)}
+    <div className="bg-white/90 p-6 rounded-2xl shadow-lg border border-gray-100">
+      <h3 className="text-xl font-semibold mb-3">Demo: Refresh Token (nâng cao)</h3>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div className="col-span-1 p-4 rounded-lg bg-gray-50">
+          <div className="text-sm text-gray-500">Access Token</div>
+          <div className="mt-2 text-xs break-words text-gray-800 h-20 overflow-auto bg-white p-2 rounded border">{accessToken || <span className="text-gray-400">(none)</span>}</div>
         </div>
+
+        <div className="col-span-1 p-4 rounded-lg bg-gray-50">
+          <div className="text-sm text-gray-500">Refresh Token (client copy)</div>
+          <div className="mt-2 text-xs break-words text-gray-800 h-20 overflow-auto bg-white p-2 rounded border">{refreshToken || <span className="text-gray-400">(not saved)</span>}</div>
+        </div>
+
+        <div className="col-span-1 p-4 rounded-lg bg-gray-50 flex flex-col gap-3">
+          <button onClick={callProtected} disabled={loading} className="w-full bg-blue-600 text-white py-2 rounded">Call protected</button>
+          <button onClick={simulateExpiry} className="w-full bg-yellow-500 text-white py-2 rounded">Simulate expiry (remove local access)</button>
+          <button onClick={forceRefresh} disabled={loading} className="w-full bg-green-600 text-white py-2 rounded">Force refresh now</button>
+        </div>
+      </div>
+
+      <div className="mb-3 flex items-center justify-between">
+        <div className="text-sm text-gray-500">Event log</div>
+        <div>
+          <button onClick={clearLog} className="text-xs text-gray-600 hover:text-gray-800">Clear</button>
+        </div>
+      </div>
+
+      <div className="h-48 overflow-auto bg-gray-100 p-3 rounded">
+        {log.length === 0 ? (
+          <div className="text-sm text-gray-400">No events yet. Try calling protected endpoint or simulate expiry.</div>
+        ) : (
+          log.map((l, i) => <div key={i} className="text-xs py-1 border-b border-gray-200">{l}</div>)
+        )}
       </div>
     </div>
   );
