@@ -75,6 +75,7 @@ function App() {
             <Route path="/profile" element={token ? <Profile /> : <AuthForm onAuth={handleAuth} />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/reset-password/:token" element={<ResetPassword />} />
             <Route path="/admin" element={token ? <AdminUserList /> : <AuthForm onAuth={handleAuth} />} />
             <Route path="/" element={token ? <Profile /> : <AuthForm onAuth={handleAuth} />} />
           </Routes>

@@ -6,6 +6,9 @@ const userSchema = new mongoose.Schema({
     password: { type: String, required: true },
     avatar: { type: String, default: '' },
     role: { type: String, enum: ['user', 'admin'], default: 'user' },
+    // Fields to support password reset flow (store hashed token + expiry)
+    resetPasswordToken: { type: String, default: '' },
+    resetPasswordExpires: { type: Date, default: null },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
 });
