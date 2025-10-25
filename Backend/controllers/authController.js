@@ -2,14 +2,14 @@ const User = require('../models/user');
 const RefreshToken = require('../models/refreshToken');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
-// short-lived access token
-const ACCESS_EXPIRES_IN = process.env.ACCESS_EXPIRES_IN || '15m';
-// long-lived refresh token
-const REFRESH_SECRET = process.env.REFRESH_SECRET || 'dev_refresh_secret';
-const REFRESH_EXPIRES_DAYS = parseInt(process.env.REFRESH_EXPIRES_DAYS || '7', 10);
+const JWT_EXPIRES_IN = '7d';
+// Reset token lifetime used for email link (human readable)
 const RESET_EXPIRES_IN = '1h';
+// Reset token expiry in ms
+const RESET_EXPIRES_MS = 60 * 60 * 1000; // 1 hour
 
 exports.signup = async (req, res) => {
     try {
@@ -144,19 +144,46 @@ exports.refresh = async (req, res) => {
     }
 };
 
-// Demo: generate reset token and (in production) send by email
+// Demo: generate reset token and send by email using nodemailer (Gmail SMTP)
+const mailer = require('../config/mailer');
+
 exports.forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
         if (!email) return res.status(400).json({ message: 'email required' });
-
         const user = await User.findOne({ email });
         if (!user) return res.status(404).json({ message: 'Email not found' });
 
-        const resetToken = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: RESET_EXPIRES_IN });
-        // TODO: send resetToken via email to user.email (use nodemailer or external service)
-        // For demo/testing we return the token in the response. In production, do NOT return token in body.
-        res.json({ message: 'Reset token generated (demo)', resetToken });
+        // Generate secure random token (raw token sent to user, hashed stored)
+        const resetTokenRaw = crypto.randomBytes(32).toString('hex');
+        const resetTokenHashed = crypto.createHash('sha256').update(resetTokenRaw).digest('hex');
+
+        // Set hashed token and expiry on user
+        user.resetPasswordToken = resetTokenHashed;
+        user.resetPasswordExpires = Date.now() + RESET_EXPIRES_MS;
+        await user.save({ validateBeforeSave: false });
+
+        // Build reset URL (frontend should accept token from path or query)
+        const resetUrl = `${process.env.FRONTEND_ORIGIN || 'http://localhost:5173'}/reset-password/${resetTokenRaw}`;
+
+        // Send email
+        const mailOptions = {
+            from: process.env.GMAIL_USER,
+            to: user.email,
+            subject: 'Password reset request',
+            text: `You requested a password reset. Use this link to reset your password (valid for ${RESET_EXPIRES_IN}): ${resetUrl}`,
+            html: `<p>You requested a password reset. Click the link below to reset your password (valid for ${RESET_EXPIRES_IN}):</p><p><a href="${resetUrl}">${resetUrl}</a></p>`
+        };
+
+        mailer.sendMail(mailOptions, (err, info) => {
+            if (err) {
+                console.error('Forgot password email error:', err && err.message);
+                // Always respond with a generic message — do NOT return the raw token.
+                return res.json({ message: 'If the email exists, a reset link has been sent to the registered email address.' });
+            }
+            console.log('Forgot password email sent:', info && info.response);
+            return res.json({ message: 'If the email exists, a reset link has been sent to the registered email address.' });
+        });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -165,21 +192,21 @@ exports.forgotPassword = async (req, res) => {
 // Reset password with token
 exports.resetPassword = async (req, res) => {
     try {
-        const { token, password } = req.body;
+        // support token in body or in URL param
+        const token = (req.body && req.body.token) || (req.params && req.params.token);
+        const { password } = req.body;
         if (!token || !password) return res.status(400).json({ message: 'token and new password required' });
 
-        let payload;
-        try {
-            payload = jwt.verify(token, JWT_SECRET);
-        } catch (err) {
-            return res.status(400).json({ message: 'Invalid or expired token' });
-        }
-
-        const user = await User.findById(payload.id);
-        if (!user) return res.status(404).json({ message: 'User not found' });
+        // Hash provided token and look up user with matching hashed token and non-expired
+        const hashed = crypto.createHash('sha256').update(token).digest('hex');
+        const user = await User.findOne({ resetPasswordToken: hashed, resetPasswordExpires: { $gt: Date.now() } });
+        if (!user) return res.status(400).json({ message: 'Invalid or expired token' });
 
         if (typeof password !== 'string' || password.length < 6) return res.status(400).json({ message: 'Password too short (min 6 chars)' });
         user.password = await bcrypt.hash(password, 10);
+        // Clear reset fields
+        user.resetPasswordToken = '';
+        user.resetPasswordExpires = null;
         user.updatedAt = Date.now();
         await user.save();
 

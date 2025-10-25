@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import api from '../lib/api';
-import { useLocation, Link } from 'react-router-dom';
+import axios from '../lib/api';
+import { useLocation, Link, useParams } from 'react-router-dom';
 import { Key, Lock, Hash, ArrowLeft, CheckCircle } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000';
@@ -18,8 +18,9 @@ const ResetPassword = () => {
     e.preventDefault();
     setError('');
 
+    // Require token from URL (path param or query). Do not allow manual token entry.
     if (!token.trim()) {
-      setError('Token không được để trống');
+      setError('Token không tìm thấy. Vui lòng mở liên kết đặt lại mật khẩu từ email.');
       return;
     }
 
@@ -33,13 +34,16 @@ const ResetPassword = () => {
       return;
     }
 
-    setIsLoading(true);
-    try {
-  const res = await api.post('/auth/reset-password', { token, password: newPassword });
-      setMessage(res.data.message || 'Đổi mật khẩu thành công!');
+      setIsLoading(true);
+      try {
+  // Backend enforces token in URL param; use current path if token present
+  // The route is POST /auth/reset-password/:token
+  const res = await axios.post(`/auth/reset-password/${encodeURIComponent(token)}`, { password: newPassword });
+        setMessage(res.data.message || 'Đổi mật khẩu thành công!');
       setIsSuccess(true);
     } catch (err) {
-      setError(err.response?.data?.message || 'Đổi mật khẩu thất bại');
+        console.error('ResetPassword error:', err);
+        setError(err.response?.data?.message || err.message || 'Đổi mật khẩu thất bại');
     } finally {
       setIsLoading(false);
     }
@@ -52,6 +56,12 @@ const ResetPassword = () => {
     const t = params.get('token');
     if (t) setToken(t);
   }, [location.search]);
+
+  // also read token from path param if route is /reset-password/:token
+  const params = useParams();
+  useEffect(() => {
+    if (params && params.token) setToken(params.token);
+  }, [params.token]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 flex items-center justify-center p-4">
