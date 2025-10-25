@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import axios from '../lib/api';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, ArrowRight, ArrowLeft, CheckCircle } from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
@@ -20,13 +19,16 @@ const ForgotPassword = () => {
     setError('');
     setIsLoading(true);
     try {
-      const res = await axios.post(`${API_BASE}/auth/forgot-password`, { email });
-      setMessage(res.data.resetToken ? `Reset token (demo): ${res.data.resetToken}` : res.data.message || 'Yêu cầu đã được gửi');
+  const res = await axios.post('/auth/forgot-password', { email });
+  setMessage(res.data.resetToken ? `Reset token (demo): ${res.data.resetToken}` : res.data.message || 'Yêu cầu đã được gửi');
       setIsSuccess(true);
       // if we have a resetToken, store it to local state so the UI can show "Tiếp theo"
       if (res.data.resetToken) setResetToken(res.data.resetToken);
     } catch (err) {
-      setError(err.response?.data?.message || 'Gửi yêu cầu thất bại');
+      // Log the full error to the console for debugging (network error vs server response)
+      console.error('ForgotPassword error:', err);
+      // Show server-provided message if present, otherwise the axios error message (e.g. 'Network Error')
+      setError(err.response?.data?.message || err.message || 'Gửi yêu cầu thất bại');
     } finally {
       setIsLoading(false);
     }
@@ -126,7 +128,7 @@ const ForgotPassword = () => {
 
               {resetToken && (
                 <button
-                  onClick={() => navigate(`/reset-password?token=${encodeURIComponent(resetToken)}`)}
+                  onClick={() => navigate(`/reset-password/${encodeURIComponent(resetToken)}`)}
                   className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5 flex items-center gap-2"
                 >
                   Tiếp theo

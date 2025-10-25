@@ -4,11 +4,17 @@ const auth = require('../controllers/authController');
 const { createLoginLimiter } = require('../middleware/rateLimiters');
 
 const loginLimiter = createLoginLimiter();
+const authMiddleware = require('../middleware/auth');
 
 router.post('/signup', auth.signup);
 router.post('/login', loginLimiter, auth.login);
 router.post('/logout', auth.logout);
+router.post('/refresh', auth.refresh);
 router.post('/forgot-password', auth.forgotPassword);
 router.post('/reset-password', auth.resetPassword);
+// Check whether current authenticated user has a permission
+router.post('/check-permission', authMiddleware, auth.checkPermission);
+// also allow GET for quick checks via query string
+router.get('/check-permission', authMiddleware, auth.checkPermission);
 
 module.exports = router;

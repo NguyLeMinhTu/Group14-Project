@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api, { setAccessToken } from '../lib/api';
 import { useNavigate, Link } from 'react-router-dom';
 import { UserPlus, Mail, Lock, User, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import BackButton from './BackButton';
@@ -19,14 +19,13 @@ const Register = ({ onAuth }) => {
     setError('');
     setIsLoading(true);
     try {
-      const res = await axios.post(`${API_BASE}/auth/signup`, { name, email, password });
-      const { token } = res.data;
+      const res = await api.post('/auth/signup', { name, email, password });
+      const { token } = res.data || {};
       if (token) {
         if (onAuth) {
           onAuth(token);
         } else {
-          localStorage.setItem('token', token);
-          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          setAccessToken(token);
           window.location.href = '/';
         }
       } else {

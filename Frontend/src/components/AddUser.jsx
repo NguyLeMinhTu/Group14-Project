@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../lib/api';
 import { UserPlus, User, Mail, X } from 'lucide-react';
 
 const AddUser = ({ onUserAdded }) => {
@@ -24,7 +24,7 @@ const AddUser = ({ onUserAdded }) => {
 
     setIsLoading(true);
     try {
-      await axios.post('/users', { name, email });
+  await api.post('/users', { name, email });
       setName('');
       setEmail('');
       setIsOpen(false);
