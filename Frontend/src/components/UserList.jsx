@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../lib/api';
 import { setAuthFromLocalStorage } from '../lib/api';
 import { Edit2, Trash2, Users, User, Mail, Search } from 'lucide-react';
 
@@ -16,8 +16,8 @@ const UserList = ({ users = [], onUsersChanged }) => {
   const handleDelete = async (id) => {
     if (!confirm('Bạn có chắc muốn xóa user này?')) return;
     try {
-      setAuthFromLocalStorage();
-      await axios.delete(`/users/${id}`);
+  setAuthFromLocalStorage();
+  await api.delete(`/users/${id}`);
       if (onUsersChanged) onUsersChanged();
     } catch (err) {
       console.error(err);
@@ -33,8 +33,8 @@ const UserList = ({ users = [], onUsersChanged }) => {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
-      setAuthFromLocalStorage();
-      await axios.put(`/users/${editingUser._id}`, editForm);
+  setAuthFromLocalStorage();
+  await api.put(`/users/${editingUser._id}`, editForm);
       setEditingUser(null);
       if (onUsersChanged) onUsersChanged();
     } catch (err) {

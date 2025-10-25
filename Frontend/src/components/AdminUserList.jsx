@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import axios from 'axios';
+import api from '../lib/api';
 import { useNavigate } from 'react-router-dom';
 import { setAuthFromLocalStorage, clearAuth } from '../lib/api';
 import {
@@ -33,8 +33,8 @@ const AdminUserList = () => {
 
   const fetchUsers = async () => {
     try {
-      setAuthFromLocalStorage();
-      const res = await axios.get('/users');
+  setAuthFromLocalStorage();
+  const res = await api.get('/users');
       setUsers(res.data || []);
       setFilteredUsers(res.data || []);
     } catch (err) {
@@ -48,8 +48,8 @@ const AdminUserList = () => {
   useEffect(() => {
     const check = async () => {
       try {
-        setAuthFromLocalStorage();
-        const res = await axios.get('/profile');
+  setAuthFromLocalStorage();
+  const res = await api.get('/profile');
         setIsAdmin(res.data?.role === 'admin');
       } catch (err) {
         // ignore - profile may fail if not authenticated
@@ -123,8 +123,8 @@ const AdminUserList = () => {
   const handleDelete = async (id) => {
     if (!confirm('Bạn có chắc muốn xóa user này?')) return;
     try {
-      setAuthFromLocalStorage();
-      await axios.delete(`/users/${id}`);
+  setAuthFromLocalStorage();
+  await api.delete(`/users/${id}`);
       fetchUsers();
       setSelectedUsers(selectedUsers.filter(selectedId => selectedId !== id));
     } catch (err) {
@@ -137,8 +137,8 @@ const AdminUserList = () => {
     if (!confirm(`Bạn có chắc muốn xóa ${selectedUsers.length} user đã chọn?`)) return;
 
     try {
-      setAuthFromLocalStorage();
-      await Promise.all(selectedUsers.map(id => axios.delete(`/users/${id}`)));
+  setAuthFromLocalStorage();
+  await Promise.all(selectedUsers.map(id => api.delete(`/users/${id}`)));
       fetchUsers();
       setSelectedUsers([]);
     } catch (err) {
@@ -148,7 +148,7 @@ const AdminUserList = () => {
 
   const handleLogout = async () => {
     try {
-      await axios.post('/auth/logout');
+  await api.post('/auth/logout');
     } catch (err) {
       // ignore server errors
     }
