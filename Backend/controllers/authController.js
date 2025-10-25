@@ -2,6 +2,7 @@ const User = require('../models/user');
 const RefreshToken = require('../models/refreshToken');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const { logActivity } = require('../middleware/logger');
 const crypto = require('crypto');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
@@ -52,12 +53,28 @@ exports.login = async (req, res) => {
         const { email, password } = req.body;
         if (!email || !password) return res.status(400).json({ message: 'email and password required' });
 
+        // Log login attempt (anonymous)
+        logActivity({ type: 'login_attempt', message: 'Login attempt', req, meta: { email } });
+
         const user = await User.findOne({ email });
-        if (!user) return res.status(400).json({ message: 'Invalid credentials' });
+        if (!user) {
+            // Log failed attempt (user not found)
+            try { await logActivity({ userId: null, type: 'login_failed', message: 'Login failed - user not found', req, meta: { email } }); } catch (e) { }
+            return res.status(400).json({ message: 'Invalid credentials' });
+        }
 
         const ok = await bcrypt.compare(password, user.password);
-        if (!ok) return res.status(400).json({ message: 'Invalid credentials' });
+        if (!ok) {
+            // Log failed attempt (wrong password)
+            try { await logActivity({ userId: user._id, type: 'login_failed', message: 'Login failed - wrong password', req, meta: { email } }); } catch (e) { }
+            return res.status(400).json({ message: 'Invalid credentials' });
+        }
 
+        const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+        res.cookie('token', token, { httpOnly: true });
+        // Log successful login
+        logActivity({ userId: user._id, type: 'login_success', message: 'User logged in', req });
+        res.json({ message: 'Login successful', token });
         const accessToken = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: ACCESS_EXPIRES_IN });
         const refreshToken = jwt.sign({ id: user._id }, REFRESH_SECRET, { expiresIn: `${REFRESH_EXPIRES_DAYS}d` });
         const expiresAt = new Date(Date.now() + REFRESH_EXPIRES_DAYS * 24 * 60 * 60 * 1000);

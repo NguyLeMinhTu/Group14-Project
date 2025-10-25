@@ -35,8 +35,25 @@ app.use('/auth', authRouter);
 const profileRouter = require('./routes/profile');
 app.use('/profile', profileRouter);
 
+// request logger (lightweight)
+const { requestLogger } = require('./middleware/logger');
+app.use(requestLogger({ skipPaths: ['/auth'] }));
+
+// admin logs route
+const logsRouter = require('./routes/logs');
+app.use('/logs', logsRouter);
+
+// health check
+app.get('/health', (req, res) => {
+	res.json({ status: 'ok', routes: ['/users', '/auth', '/profile', '/logs'] });
+});
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+	console.log(`Server running on port ${PORT}`);
+	// Helpful debug: list mounted routes (approx)
+	console.log('Mounted routes: /users, /auth, /profile, /logs');
+});
 
 module.exports = app;
 

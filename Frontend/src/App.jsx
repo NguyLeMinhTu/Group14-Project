@@ -5,6 +5,7 @@ import AuthForm from './components/AuthForm';
 import Register from './components/Register';
 import Profile from './components/Profile';
 import AdminUserList from './components/AdminUserList';
+import AdminLogs from './components/AdminLogs';
 import ModeratorPanel from './components/ModeratorPanel';
 import ForgotPassword from './components/ForgotPassword';
 import ResetPassword from './components/ResetPassword';
@@ -74,6 +75,8 @@ function App() {
             <Route path="/profile" element={token ? <Profile /> : <AuthForm onAuth={handleAuth} />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/admin" element={token ? <AdminUserList /> : <AuthForm onAuth={handleAuth} />} />
+            <Route path="/admin/logs" element={token ? <AdminLogs /> : <AuthForm onAuth={handleAuth} />} />
             <Route path="/admin" element={currentUser?.role === 'admin' ? <AdminUserList /> : <AuthForm onAuth={handleAuth} />} />
             <Route path="/moderator" element={(currentUser?.role === 'moderator' || currentUser?.role === 'admin') ? <ModeratorPanel /> : <AuthForm onAuth={handleAuth} />} />
             <Route path="/" element={token ? <Profile /> : <AuthForm onAuth={handleAuth} />} />
