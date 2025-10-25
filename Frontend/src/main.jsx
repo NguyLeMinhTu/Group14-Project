@@ -12,6 +12,10 @@ if (store.getState().auth.token) {
   // fetchProfile is idempotent — it will populate user or clear token on failure
   store.dispatch(fetchProfile());
 }
+import { setAuthFromLocalStorage } from './lib/api'
+
+// initialize axios auth header from saved token (if any)
+setAuthFromLocalStorage();
 
 createRoot(document.getElementById('root')).render(
   <>

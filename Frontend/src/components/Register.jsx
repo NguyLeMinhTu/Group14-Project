@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
+import api, { setAccessToken } from '../lib/api';
 import { useNavigate, Link } from 'react-router-dom';
 import { UserPlus, Mail, Lock, User, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import BackButton from './BackButton';
@@ -24,6 +25,18 @@ const Register = ({ onAuth }) => {
       if (result.error) throw result.error;
       if (onAuth) onAuth();
       else navigate('/');
+      const res = await api.post('/auth/signup', { name, email, password });
+      const { token } = res.data || {};
+      if (token) {
+        if (onAuth) {
+          onAuth(token);
+        } else {
+          setAccessToken(token);
+          window.location.href = '/';
+        }
+      } else {
+        setError('Đăng ký thành công nhưng không nhận token');
+      }
     } catch (err) {
       setError(err.payload?.message || err.message || 'Đăng ký thất bại');
     } finally {

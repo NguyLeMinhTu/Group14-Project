@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api, { setAccessToken } from '../lib/api';
 import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { login, fetchProfile } from '../store/authSlice';
@@ -29,6 +29,15 @@ const Login = ({ onAuth }) => {
         if (token) {
           onAuth(token);
           return;
+      const res = await api.post('/auth/login', { email, password });
+      const { token } = res.data || {};
+      if (token) {
+        if (onAuth) {
+          onAuth(token);
+        } else {
+          setAccessToken(token);
+          // redirect to home
+          window.location.href = '/';
         }
         setError('Không nhận được token từ server');
         return;
