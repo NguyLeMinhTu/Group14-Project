@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { login, fetchProfile } from '../store/authSlice';
 import { LogIn, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000';
@@ -13,23 +15,35 @@ const Login = ({ onAuth }) => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
+  const dispatch = useDispatch();
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
     try {
-      const res = await axios.post(`${API_BASE}/auth/login`, { email, password });
-      const { token } = res.data;
-      if (token) {
-        if (onAuth) {
+      // If parent provided an onAuth handler (test harness), call it.
+      if (onAuth) {
+        const res = await axios.post(`${API_BASE}/auth/login`, { email, password });
+        const { token } = res.data;
+        if (token) {
           onAuth(token);
-        } else {
-          localStorage.setItem('token', token);
-          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-          window.location.href = '/';
+          return;
         }
-      } else {
         setError('Không nhận được token từ server');
+        return;
+      }
+
+      // Use redux thunk to login and then fetch profile
+      const resultAction = await dispatch(login({ email, password }));
+      if (login.fulfilled.match(resultAction)) {
+        // after token saved by thunk, fetch profile
+        await dispatch(fetchProfile());
+        // navigate to home
+        navigate('/');
+      } else {
+        const payload = resultAction.payload || resultAction.error;
+        setError(payload?.message || 'Đăng nhập thất bại');
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Đăng nhập thất bại');
