@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../lib/api';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, ArrowRight, ArrowLeft, CheckCircle } from 'lucide-react';
 
@@ -20,8 +20,8 @@ const ForgotPassword = () => {
     setError('');
     setIsLoading(true);
     try {
-      const res = await axios.post(`${API_BASE}/auth/forgot-password`, { email });
-      setMessage(res.data.resetToken ? `Reset token (demo): ${res.data.resetToken}` : res.data.message || 'Yêu cầu đã được gửi');
+  const res = await api.post('/auth/forgot-password', { email });
+  setMessage(res.data.resetToken ? `Reset token (demo): ${res.data.resetToken}` : res.data.message || 'Yêu cầu đã được gửi');
       setIsSuccess(true);
       // if we have a resetToken, store it to local state so the UI can show "Tiếp theo"
       if (res.data.resetToken) setResetToken(res.data.resetToken);
