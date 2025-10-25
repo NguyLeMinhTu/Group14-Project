@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import api, { setAuthFromLocalStorage, clearAuth, getAccessToken, setAccessToken, removeAccessToken } from './lib/api';
+import api, { setAuthFromLocalStorage, clearAuth, getAccessToken, setAccessToken, removeAccessToken, clearAuth } from './lib/api';
 import { useNavigate } from 'react-router-dom';
-// UserList and AddUser were removed from the root route in favor of the Profile page
 import AuthForm from './components/AuthForm';
 import Register from './components/Register';
 import Profile from './components/Profile';
 import AdminUserList from './components/AdminUserList';
+import ModeratorPanel from './components/ModeratorPanel';
 import ForgotPassword from './components/ForgotPassword';
 import ResetPassword from './components/ResetPassword';
 import DemoRefresh from './components/DemoRefresh';
@@ -47,6 +47,7 @@ function App() {
     }
     clearAuth();
     setToken(null);
+    setCurrentUser(null);
     navigate('/login');
   };
 
@@ -62,7 +63,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {token && <Navbar currentUser={currentUser} onLogout={handleLogout} />}
+      {currentUser && <Navbar currentUser={currentUser} onLogout={handleLogout} />}
 
       <main className={token ? 'app-main p-6' : 'flex items-center justify-center min-h-screen p-6'}>
         <div className={token ? 'w-full' : 'w-full max-w-md'}>
@@ -73,7 +74,8 @@ function App() {
             <Route path="/profile" element={token ? <Profile /> : <AuthForm onAuth={handleAuth} />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/admin" element={token ? <AdminUserList /> : <AuthForm onAuth={handleAuth} />} />
+            <Route path="/admin" element={currentUser?.role === 'admin' ? <AdminUserList /> : <AuthForm onAuth={handleAuth} />} />
+            <Route path="/moderator" element={(currentUser?.role === 'moderator' || currentUser?.role === 'admin') ? <ModeratorPanel /> : <AuthForm onAuth={handleAuth} />} />
             <Route path="/" element={token ? <Profile /> : <AuthForm onAuth={handleAuth} />} />
           </Routes>
         </div>
