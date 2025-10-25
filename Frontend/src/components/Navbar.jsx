@@ -43,6 +43,13 @@ const Navbar = ({ currentUser, onLogout }) => {
                             <User className="w-4 h-4" />
                             Hồ sơ
                         </Link>
+                        <Link
+                            to="/demo-refresh"
+                            className="flex items-center gap-2 text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-lg hover:bg-indigo-50 transition-all duration-200 font-medium"
+                        >
+                            <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v6h6M20 20v-6h-6M20 8a8 8 0 11-8-8" /></svg>
+                            Demo Refresh
+                        </Link>
                         {currentUser?.role === 'admin' && (
                             <Link
                                 to="/admin"
@@ -50,6 +57,15 @@ const Navbar = ({ currentUser, onLogout }) => {
                             >
                                 <Shield className="w-4 h-4" />
                                 Quản trị
+                            </Link>
+                        )}
+                        {currentUser?.role === 'moderator' && (
+                            <Link
+                                to="/moderator"
+                                className="flex items-center gap-2 text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-lg hover:bg-indigo-50 transition-all duration-200 font-medium"
+                            >
+                                <Shield className="w-4 h-4" />
+                                Moderator
                             </Link>
                         )}
                     </div>
@@ -103,6 +119,14 @@ const Navbar = ({ currentUser, onLogout }) => {
                             >
                                 <User className="w-5 h-5" />
                                 Hồ sơ
+                            </Link>
+                            <Link
+                                to="/demo-refresh"
+                                className="flex items-center gap-3 px-3 py-3 text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all duration-200 font-medium"
+                                onClick={closeMobileMenu}
+                            >
+                                <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v6h6M20 20v-6h-6M20 8a8 8 0 11-8-8" /></svg>
+                                Demo Refresh
                             </Link>
                             {currentUser?.role === 'admin' && (
                                 <Link

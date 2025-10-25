@@ -2,6 +2,7 @@ const User = require('../models/user'); // Import model User
 const bcrypt = require('bcrypt');
 const cloudinary = require('../config/cloudinaryConfig');
 const streamifier = require('streamifier');
+const sharp = require('sharp');
 
 // Helper to remove sensitive fields
 function sanitize(user) {
@@ -45,10 +46,36 @@ exports.updateUser = async (req, res) => {
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
-        if (req.body.name) user.name = req.body.name;
-        if (req.body.email) user.email = req.body.email;
-        if (req.body.password) user.password = await bcrypt.hash(req.body.password, 10);
-        if (req.body.role) user.role = req.body.role;
+    const requester = req.user; // { id, role }
+
+    if (!requester) return res.status(401).json({ message: 'Unauthorized' });
+
+    const isSelf = requester.id === req.params.id;
+
+    // Prevent moderators or users from modifying admin accounts
+    if (user.role === 'admin' && requester.role !== 'admin') {
+        return res.status(403).json({ message: 'Forbidden: cannot modify admin account' });
+    }
+
+    // Only admin can change role or email on other accounts.
+    if (req.body.role && requester.role !== 'admin') {
+        return res.status(403).json({ message: 'Forbidden: only admin can change roles' });
+    }
+
+    if (req.body.email && !isSelf && requester.role !== 'admin') {
+        return res.status(403).json({ message: "Forbidden: only admin can change another user's email" });
+    }
+
+    // Fields allowed for moderators and users (self): name, avatar, password (self only)
+    if (req.body.name) user.name = req.body.name;
+    if (req.body.avatar) user.avatar = req.body.avatar;
+    if (req.body.password) {
+        // Only allow password change by self or admin
+        if (!isSelf && requester.role !== 'admin') return res.status(403).json({ message: 'Forbidden: cannot change password for another user' });
+        user.password = await bcrypt.hash(req.body.password, 10);
+    }
+    if (req.body.email) user.email = req.body.email;
+    if (req.body.role) user.role = req.body.role;
         const updatedUser = await user.save();
         res.json(sanitize(updatedUser));
     } catch (err) {
@@ -151,7 +178,13 @@ exports.uploadAvatarFile = async (req, res) => {
         const user = await User.findById(req.user.id);
         if (!user) return res.status(404).json({ message: 'User not found' });
 
-        const bufferStream = streamifier.createReadStream(req.file.buffer);
+        // Resize and convert to jpeg using sharp (256x256)
+        const resizedBuffer = await sharp(req.file.buffer)
+            .resize(256, 256, { fit: 'cover' })
+            .jpeg({ quality: 80 })
+            .toBuffer();
+
+        const bufferStream = streamifier.createReadStream(resizedBuffer);
 
         const uploadStream = cloudinary.uploader.upload_stream({ folder: 'avatars', resource_type: 'image' }, async (error, result) => {
             if (error) {

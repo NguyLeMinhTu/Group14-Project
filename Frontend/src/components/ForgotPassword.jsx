@@ -19,9 +19,8 @@ const ForgotPassword = () => {
     setError('');
     setIsLoading(true);
     try {
-      const res = await axios.post(`/auth/forgot-password`, { email });
-      // Don't display the raw reset token in the UI even in dev — keep only a generic message.
-      setMessage(res.data.message || 'Yêu cầu đã được gửi');
+  const res = await axios.post('/auth/forgot-password', { email });
+  setMessage(res.data.resetToken ? `Reset token (demo): ${res.data.resetToken}` : res.data.message || 'Yêu cầu đã được gửi');
       setIsSuccess(true);
       // if we have a resetToken, store it to local state so the UI can show "Tiếp theo"
       if (res.data.resetToken) setResetToken(res.data.resetToken);
