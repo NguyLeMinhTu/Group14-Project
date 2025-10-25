@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api, { setAuthFromLocalStorage, clearAuth, getAccessToken, setAccessToken, removeAccessToken } from './lib/api';
 import { useNavigate } from 'react-router-dom';
-import { setAuthFromLocalStorage } from './lib/api';
 // UserList and AddUser were removed from the root route in favor of the Profile page
 import AuthForm from './components/AuthForm';
 import Register from './components/Register';
@@ -9,28 +8,28 @@ import Profile from './components/Profile';
 import AdminUserList from './components/AdminUserList';
 import ForgotPassword from './components/ForgotPassword';
 import ResetPassword from './components/ResetPassword';
+import DemoRefresh from './components/DemoRefresh';
 import Navbar from './components/Navbar';
 import { Routes, Route } from 'react-router-dom';
 
 function App() {
-  const [token, setToken] = useState(localStorage.getItem('token') || null);
+  const [token, setToken] = useState(getAccessToken() || null);
   const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
     const init = async () => {
-      // set axios auth header if token in localStorage
+      // set api auth header if token in localStorage
       setAuthFromLocalStorage();
       if (!token) return;
       try {
         // fetch current user profile first
-        const res = await axios.get('/profile');
+        const res = await api.get('/profile');
         setCurrentUser(res.data || null);
         // Admin-specific user listing is handled in the admin route/component
       } catch (err) {
         // if token invalid or expired, clear auth and redirect to login
         console.info('Profile fetch failed, clearing auth', err?.response?.status);
-        localStorage.removeItem('token');
-        delete axios.defaults.headers.common['Authorization'];
+        clearAuth();
         setToken(null);
         setCurrentUser(null);
         // optionally redirect to login
@@ -42,12 +41,11 @@ function App() {
 
   const handleLogout = async () => {
     try {
-      await axios.post('/auth/logout');
+      await api.post('/auth/logout');
     } catch (err) {
       // ignore
     }
-    localStorage.removeItem('token');
-    delete axios.defaults.headers.common['Authorization'];
+    clearAuth();
     setToken(null);
     navigate('/login');
   };
@@ -57,8 +55,7 @@ function App() {
   // centralize what happens after successful auth (login/register)
   const handleAuth = (t) => {
     if (!t) return;
-    localStorage.setItem('token', t);
-    axios.defaults.headers.common['Authorization'] = `Bearer ${t}`;
+    setAccessToken(t);
     setToken(t);
     navigate('/');
   };
@@ -72,6 +69,7 @@ function App() {
           <Routes>
             <Route path="/login" element={<AuthForm onAuth={handleAuth} />} />
             <Route path="/register" element={<Register onAuth={handleAuth} />} />
+            <Route path="/demo-refresh" element={token ? <DemoRefresh /> : <AuthForm onAuth={handleAuth} />} />
             <Route path="/profile" element={token ? <Profile /> : <AuthForm onAuth={handleAuth} />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
