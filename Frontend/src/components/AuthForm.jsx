@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
+import { useDispatch } from 'react-redux';
 import api, { setRefreshToken } from '../lib/api';
 import { useNavigate } from 'react-router-dom';
 import { LogIn, Key } from 'lucide-react';
 import BackButton from './BackButton';
-
-const API_BASE = import.meta.env.VITE_API_BASE || '';
+import { login } from '../store/authSlice';
 
 const AuthForm = ({ onAuth }) => {
     const [email, setEmail] = useState('');
@@ -14,12 +14,19 @@ const AuthForm = ({ onAuth }) => {
     const [resetMessage, setResetMessage] = useState('');
 
     const navigate = useNavigate();
+    const dispatch = useDispatch();
 
     const handleLogin = async (e) => {
         e.preventDefault();
         setError('');
         setLoading(true);
         try {
+            const result = await dispatch(login({ email, password }));
+            if (result.error) {
+                throw result.error;
+            }
+            if (onAuth) onAuth();
+            else navigate('/');
             const res = await api.post('/auth/login', { email, password });
             const token = res.data?.token;
             const refresh = res.data?.refreshToken;
@@ -27,7 +34,7 @@ const AuthForm = ({ onAuth }) => {
             if (!token) throw new Error('Không nhận được token');
             if (onAuth) onAuth(token);
         } catch (err) {
-            setError(err.response?.data?.message || err.message || 'Đăng nhập thất bại');
+            setError(err.payload?.message || err.message || 'Đăng nhập thất bại');
         } finally {
             setLoading(false);
         }

@@ -1,4 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { setTokenFromStorage, fetchProfile, logout as logoutAction } from './store/authSlice';
 import api, { setAuthFromLocalStorage, clearAuth, getAccessToken, setAccessToken, removeAccessToken, clearAuth } from './lib/api';
 import { useNavigate } from 'react-router-dom';
 import AuthForm from './components/AuthForm';
@@ -12,8 +16,29 @@ import ResetPassword from './components/ResetPassword';
 import DemoRefresh from './components/DemoRefresh';
 import Navbar from './components/Navbar';
 import { Routes, Route } from 'react-router-dom';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
+  const dispatch = useDispatch();
+  const { token } = useSelector((s) => s.auth);
+
+  useEffect(() => {
+    // initialize token/header from storage and fetch profile if token exists
+    dispatch(setTokenFromStorage());
+    if (localStorage.getItem('token')) {
+      dispatch(fetchProfile());
+    }
+  }, [dispatch]);
+
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await dispatch(logoutAction());
+    navigate('/login');
+  };
+
+  // navigation helper passed to Auth components (they call thunks themselves)
+  const handleAuth = () => {
   const [token, setToken] = useState(getAccessToken() || null);
   const [currentUser, setCurrentUser] = useState(null);
 
@@ -64,6 +89,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {token && <Navbar onLogout={handleLogout} />}
       {currentUser && <Navbar currentUser={currentUser} onLogout={handleLogout} />}
 
       <main className={token ? 'app-main p-6' : 'flex items-center justify-center min-h-screen p-6'}>
@@ -71,6 +97,32 @@ function App() {
           <Routes>
             <Route path="/login" element={<AuthForm onAuth={handleAuth} />} />
             <Route path="/register" element={<Register onAuth={handleAuth} />} />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                  <AdminUserList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/demo-refresh" element={token ? <DemoRefresh /> : <AuthForm onAuth={handleAuth} />} />
             <Route path="/profile" element={token ? <Profile /> : <AuthForm onAuth={handleAuth} />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
