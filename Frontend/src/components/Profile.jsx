@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api, { setAuthFromLocalStorage, clearAuth } from '../lib/api';
+import axios, { setAuthFromLocalStorage, clearAuth } from '../lib/api';
 import { LogOut, Trash2, UploadCloud, User, Mail, Lock, Camera, Link as LinkIcon, Save, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -66,10 +66,12 @@ const Profile = () => {
     setError('');
     setIsUploading(true);
     try {
-      const form = new FormData();
-      form.append('avatar', file);
-      setAuthFromLocalStorage();
-      const res = await api.post(`/profile/upload-avatar`, form, { headers: { 'Content-Type': 'multipart/form-data' } });
+  const form = new FormData();
+  form.append('avatar', file);
+  setAuthFromLocalStorage();
+  const res = await axios.post(`/profile/upload-avatar`, form);
+
+
       setAvatar(res.data.avatar || res.data.avatarUrl || '');
       setMessage('Upload avatar thành công');
       setFile(null);
