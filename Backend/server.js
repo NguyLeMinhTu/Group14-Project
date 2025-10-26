@@ -19,8 +19,20 @@ mongoose.connect(process.env.MONGODB_URI, {
 const cors = require('cors');
 // Allow credentials from the frontend origin. When using credentials (cookies) the
 // Access-Control-Allow-Origin header MUST NOT be '*'. Use an explicit origin.
-const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
-app.use(cors({ origin: FRONTEND_ORIGIN, credentials: true }));
+const FRONTEND_ORIGINS = (process.env.FRONTEND_ORIGIN || 'http://localhost:5173')
+	.split(',')
+	.map(origin => origin.trim());
+
+app.use(cors({ 
+	origin: function (origin, callback) {
+		if (!origin || FRONTEND_ORIGINS.includes(origin)) {
+			callback(null, true);
+		} else {
+			callback(new Error('Not allowed by CORS'));
+		}
+	},
+	credentials: true 
+}));
 
 
 // users routes
