@@ -1,9 +1,6 @@
 # Group14-Project — User Manager
 
 ## Mô tả dự án
-
-# Group14-Project
-
 Phiên bản demo của hệ thống quản lý người dùng (User Management). Dự án bao gồm:
 - Backend: REST API (Node.js + Express + Mongoose)
 - Frontend: React (Vite) — giao diện quản trị, profile, xác thực và demo refresh token
@@ -169,6 +166,15 @@ Sau khi cả hai server chạy, mở trình duyệt tới `http://localhost:5173
 - Tran Nhut Quang (Database + Viết báo cáo)
 - Phan Tan Loc (Frontend + Test Api & PostMan)
 - `Viết mô tả rõ ràng, steps để reproduce, và test locally trước khi PR`
+
+---
+
+---
+
+## Admin account
+
+- email: `admin@gmail.com`
+- password: `123456`
 
 ---
 
