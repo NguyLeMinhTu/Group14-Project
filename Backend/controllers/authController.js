@@ -26,10 +26,10 @@ exports.signup = async (req, res) => {
         const user = new User({ name, email, password: hash });
         await user.save();
 
-        const accessToken = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: ACCESS_EXPIRES_IN });
+        const accessToken = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
         // create refresh token and save
-        const refreshToken = jwt.sign({ id: user._id }, REFRESH_SECRET, { expiresIn: `${REFRESH_EXPIRES_DAYS}d` });
-        const expiresAt = new Date(Date.now() + REFRESH_EXPIRES_DAYS * 24 * 60 * 60 * 1000);
+        const refreshToken = jwt.sign({ id: user._id }, process.env.REFRESH_SECRET || 'refresh_dev_secret', { expiresIn: `${process.env.REFRESH_EXPIRES_DAYS || 7}d` });
+        const expiresAt = new Date(Date.now() + (Number(process.env.REFRESH_EXPIRES_DAYS || 7) * 24 * 60 * 60 * 1000));
         await RefreshToken.create({ user: user._id, token: refreshToken, expiresAt });
 
         // set httpOnly cookies. For local development we allow sameSite lax and secure=false.
@@ -44,6 +44,7 @@ exports.signup = async (req, res) => {
         if (process.env.NODE_ENV !== 'production') resp.refreshToken = refreshToken;
         res.status(201).json(resp);
     } catch (err) {
+        console.error('signup error', err);
         res.status(500).json({ message: err.message });
     }
 };
@@ -70,27 +71,28 @@ exports.login = async (req, res) => {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
 
-        const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
-        res.cookie('token', token, { httpOnly: true });
-        // Log successful login
-        logActivity({ userId: user._id, type: 'login_success', message: 'User logged in', req });
-        res.json({ message: 'Login successful', token });
-        const accessToken = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: ACCESS_EXPIRES_IN });
-        const refreshToken = jwt.sign({ id: user._id }, REFRESH_SECRET, { expiresIn: `${REFRESH_EXPIRES_DAYS}d` });
-        const expiresAt = new Date(Date.now() + REFRESH_EXPIRES_DAYS * 24 * 60 * 60 * 1000);
+        // issue access + refresh tokens
+        const accessToken = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+        const refreshToken = jwt.sign({ id: user._id }, process.env.REFRESH_SECRET || 'refresh_dev_secret', { expiresIn: `${process.env.REFRESH_EXPIRES_DAYS || 7}d` });
+        const expiresAt = new Date(Date.now() + (Number(process.env.REFRESH_EXPIRES_DAYS || 7) * 24 * 60 * 60 * 1000));
 
         // persist refresh token (allow multiple devices)
         await RefreshToken.create({ user: user._id, token: refreshToken, expiresAt });
 
-        // send cookies
+        // send cookies (httpOnly, sameSite lax for dev)
         const cookieOptions2 = { httpOnly: true, sameSite: 'lax' };
         if (process.env.NODE_ENV === 'production') cookieOptions2.secure = true;
         res.cookie('token', accessToken, cookieOptions2);
         res.cookie('refreshToken', refreshToken, cookieOptions2);
+
+        // Log successful login
+        try { await logActivity({ userId: user._id, type: 'login_success', message: 'User logged in', req }); } catch (e) { }
+
         const out = { message: 'Login successful', token: accessToken };
         if (process.env.NODE_ENV !== 'production') out.refreshToken = refreshToken;
-        res.json(out);
+        return res.json(out);
     } catch (err) {
+        console.error('login error', err);
         res.status(500).json({ message: err.message });
     }
 };
@@ -107,6 +109,7 @@ exports.logout = (req, res) => {
         res.clearCookie('refreshToken');
         res.json({ message: 'Logged out' });
     } catch (err) {
+        console.error('refresh error', err);
         res.status(500).json({ message: err.message });
     }
 };
@@ -138,7 +141,7 @@ exports.refresh = async (req, res) => {
 
         let payload;
         try {
-            payload = jwt.verify(token, REFRESH_SECRET);
+            payload = jwt.verify(token, process.env.REFRESH_SECRET || 'refresh_dev_secret');
         } catch (err) {
             // invalid refresh token - remove from DB
             await RefreshToken.deleteOne({ token }).catch(() => { });
@@ -149,7 +152,7 @@ exports.refresh = async (req, res) => {
         if (!user) return res.status(404).json({ message: 'User not found' });
 
         // issue new access token
-        const accessToken = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: ACCESS_EXPIRES_IN });
+        const accessToken = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
         // Optionally rotate refresh token: here we keep the same refresh token until expiry.
 
         const cookieOptions3 = { httpOnly: true, sameSite: 'lax' };
@@ -157,6 +160,7 @@ exports.refresh = async (req, res) => {
         res.cookie('token', accessToken, cookieOptions3);
         res.json({ message: 'Token refreshed', token: accessToken });
     } catch (err) {
+        console.error('forgotPassword error', err);
         res.status(500).json({ message: err.message });
     }
 };
@@ -202,6 +206,7 @@ exports.forgotPassword = async (req, res) => {
             return res.json({ message: 'If the email exists, a reset link has been sent to the registered email address.' });
         });
     } catch (err) {
+        console.error('resetPassword error', err);
         res.status(500).json({ message: err.message });
     }
 };
@@ -229,6 +234,7 @@ exports.resetPassword = async (req, res) => {
 
         res.json({ message: 'Password reset successful' });
     } catch (err) {
+        console.error('checkPermission error', err);
         res.status(500).json({ message: err.message });
     }
 };
