@@ -19,8 +19,8 @@ const ForgotPassword = () => {
     setError('');
     setIsLoading(true);
     try {
-  const res = await axios.post('/auth/forgot-password', { email });
-  setMessage(res.data.resetToken ? `Reset token (demo): ${res.data.resetToken}` : res.data.message || 'Yêu cầu đã được gửi');
+      const res = await axios.post('/auth/forgot-password', { email });
+      setMessage(res.data.resetToken ? `Reset token (demo): ${res.data.resetToken}` : res.data.message || 'Yêu cầu đã được gửi');
       setIsSuccess(true);
       // if we have a resetToken, store it to local state so the UI can show "Tiếp theo"
       if (res.data.resetToken) setResetToken(res.data.resetToken);
@@ -35,7 +35,7 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Back Button */}
         <div className="mb-6">
@@ -50,7 +50,7 @@ const ForgotPassword = () => {
 
         {/* Logo/Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl shadow-lg mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-900 rounded-2xl shadow mb-4">
             <Mail className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Quên mật khẩu</h1>
@@ -58,7 +58,7 @@ const ForgotPassword = () => {
         </div>
 
         {/* Form Card */}
-        <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl p-8 border border-white/20">
+        <div className="bg-white rounded-3xl shadow p-8 border border-gray-100">
           {!isSuccess ? (
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Email Field */}
@@ -68,7 +68,7 @@ const ForgotPassword = () => {
                   Email
                 </label>
                 <input
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-amber-500 focus:ring-4 focus:ring-amber-200 transition-all duration-200 text-gray-900 placeholder-gray-400"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-gray-400 focus:ring-2 focus:ring-gray-200 transition-all duration-200 text-gray-900 placeholder-gray-400"
                   type="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
@@ -95,7 +95,7 @@ const ForgotPassword = () => {
 
               {/* Submit Button */}
               <button
-                className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                className="w-full bg-gray-900 hover:bg-black text-white font-semibold py-3 px-4 rounded-xl shadow disabled:opacity-50 disabled:cursor-not-allowed"
                 type="submit"
                 disabled={isLoading}
               >

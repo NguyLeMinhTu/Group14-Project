@@ -21,6 +21,11 @@ import {
 
 const AdminUserList = () => {
   const [users, setUsers] = useState([]);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editRole, setEditRole] = useState('user');
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [error, setError] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
@@ -33,8 +38,8 @@ const AdminUserList = () => {
 
   const fetchUsers = async () => {
     try {
-  setAuthFromLocalStorage();
-  const res = await api.get('/users');
+      setAuthFromLocalStorage();
+      const res = await api.get('/users');
       setUsers(res.data || []);
       setFilteredUsers(res.data || []);
     } catch (err) {
@@ -48,8 +53,8 @@ const AdminUserList = () => {
   useEffect(() => {
     const check = async () => {
       try {
-  setAuthFromLocalStorage();
-  const res = await api.get('/profile');
+        setAuthFromLocalStorage();
+        const res = await api.get('/profile');
         setIsAdmin(res.data?.role === 'admin');
       } catch (err) {
         // ignore - profile may fail if not authenticated
@@ -123,12 +128,36 @@ const AdminUserList = () => {
   const handleDelete = async (id) => {
     if (!confirm('Bạn có chắc muốn xóa user này?')) return;
     try {
-  setAuthFromLocalStorage();
-  await api.delete(`/users/${id}`);
+      setAuthFromLocalStorage();
+      await api.delete(`/users/${id}`);
       fetchUsers();
       setSelectedUsers(selectedUsers.filter(selectedId => selectedId !== id));
     } catch (err) {
       setError(err.response?.data?.message || 'Xóa thất bại');
+    }
+  };
+
+  const openEdit = (user) => {
+    setEditingUser(user);
+    setEditName(user.name || '');
+    setEditEmail(user.email || '');
+    setEditRole(user.role || 'user');
+    setIsEditOpen(true);
+  };
+
+  const submitEdit = async (e) => {
+    e.preventDefault();
+    if (!editingUser) return;
+    try {
+      setAuthFromLocalStorage();
+      const body = { name: editName, email: editEmail, role: editRole };
+      const res = await api.put(`/users/${editingUser._id || editingUser.id}`, body);
+      // update local list
+      fetchUsers();
+      setIsEditOpen(false);
+      setEditingUser(null);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Cập nhật thất bại');
     }
   };
 
@@ -137,8 +166,8 @@ const AdminUserList = () => {
     if (!confirm(`Bạn có chắc muốn xóa ${selectedUsers.length} user đã chọn?`)) return;
 
     try {
-  setAuthFromLocalStorage();
-  await Promise.all(selectedUsers.map(id => api.delete(`/users/${id}`)));
+      setAuthFromLocalStorage();
+      await Promise.all(selectedUsers.map(id => api.delete(`/users/${id}`)));
       fetchUsers();
       setSelectedUsers([]);
     } catch (err) {
@@ -148,7 +177,7 @@ const AdminUserList = () => {
 
   const handleLogout = async () => {
     try {
-  await api.post('/auth/logout');
+      await api.post('/auth/logout');
     } catch (err) {
       // ignore server errors
     }
@@ -161,12 +190,12 @@ const AdminUserList = () => {
       return <ChevronUp className="w-4 h-4 text-gray-400" />;
     }
     return sortConfig.direction === 'asc'
-      ? <ChevronUp className="w-4 h-4 text-indigo-600" />
-      : <ChevronDown className="w-4 h-4 text-indigo-600" />;
+      ? <ChevronUp className="w-4 h-4 text-gray-900" />
+      : <ChevronDown className="w-4 h-4 text-gray-900" />;
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+    <div className="min-h-screen bg-white p-6">
       <div className="max-w-7xl mx-auto">
 
         {/* Controls */}
@@ -181,7 +210,7 @@ const AdminUserList = () => {
                   placeholder="Tìm kiếm người dùng..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-200 transition-all duration-200"
+                  className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-gray-400 focus:ring-0 transition-all duration-150"
                 />
               </div>
             </div>
@@ -195,7 +224,7 @@ const AdminUserList = () => {
                   </span>
                   <button
                     onClick={handleBulkDelete}
-                    className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
+                    className="inline-flex items-center px-4 py-2 bg-gray-900 hover:bg-black text-white font-medium rounded-xl shadow-sm transition-colors duration-150"
                   >
                     <Trash2 className="w-4 h-4 mr-2" />
                     Xóa đã chọn
@@ -233,7 +262,7 @@ const AdminUserList = () => {
                       type="checkbox"
                       checked={paginatedUsers.length > 0 && selectedUsers.length === paginatedUsers.length}
                       onChange={(e) => handleSelectAll(e.target.checked)}
-                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                      className="rounded border-gray-300 text-gray-900 focus:ring-gray-300"
                     />
                   </th>
                   <th
@@ -274,14 +303,14 @@ const AdminUserList = () => {
                         type="checkbox"
                         checked={selectedUsers.includes(user._id || user.id)}
                         onChange={(e) => handleSelectUser(user._id || user.id, e.target.checked)}
-                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                        className="rounded border-gray-300 text-gray-900 focus:ring-gray-300"
                       />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10">
-                          <div className="h-10 w-10 rounded-full bg-gradient-to-r from-indigo-400 to-purple-500 flex items-center justify-center">
-                            <User className="h-5 w-5 text-white" />
+                          <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
+                            <User className="h-5 w-5 text-gray-700" />
                           </div>
                         </div>
                         <div className="ml-4">
@@ -294,10 +323,7 @@ const AdminUserList = () => {
                       <div className="text-sm text-gray-900">{user.email}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${user.role === 'admin'
-                        ? 'bg-purple-100 text-purple-800'
-                        : 'bg-green-100 text-green-800'
-                        }`}>
+                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
                         {user.role || 'user'}
                       </span>
                     </td>
@@ -307,13 +333,23 @@ const AdminUserList = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end gap-2">
                         {isAdmin ? (
-                          <button
-                            onClick={() => handleDelete(user._id || user.id)}
-                            className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50 transition-colors"
-                            title="Xóa"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <>
+                            <button
+                              onClick={() => handleDelete(user._id || user.id)}
+                              className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50 transition-colors"
+                              title="Xóa"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+
+                            <button
+                              onClick={() => openEdit(user)}
+                              className="text-gray-700 hover:text-gray-900 p-1 rounded hover:bg-gray-100 transition-colors"
+                              title="Sửa"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                          </>
                         ) : (
                           <span className="text-sm text-gray-400">—</span>
                         )}
@@ -324,6 +360,56 @@ const AdminUserList = () => {
               </tbody>
             </table>
           </div>
+
+          {/* Edit Modal */}
+          {isEditOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center">
+              <div className="fixed inset-0 bg-black opacity-40" onClick={() => { setIsEditOpen(false); setEditingUser(null); }} />
+              <div className="bg-white rounded-xl p-6 z-10 w-full max-w-md shadow-lg">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Chỉnh sửa người dùng</h3>
+                <form onSubmit={submitEdit} className="space-y-4">
+                  <div>
+                    <label className="text-sm text-gray-700">Tên</label>
+                    <input
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="mt-1 w-full border border-gray-200 rounded-md p-2"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-700">Email</label>
+                    <input
+                      value={editEmail}
+                      onChange={(e) => setEditEmail(e.target.value)}
+                      className="mt-1 w-full border border-gray-200 rounded-md p-2"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-700">Vai trò</label>
+                    <select
+                      value={editRole}
+                      onChange={(e) => setEditRole(e.target.value)}
+                      className="mt-1 w-full border border-gray-200 rounded-md p-2"
+                    >
+                      <option value="user">User</option>
+                      <option value="moderator">Moderator</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { setIsEditOpen(false); setEditingUser(null); }}
+                      className="px-4 py-2 rounded-md border border-gray-300"
+                    >
+                      Hủy
+                    </button>
+                    <button type="submit" className="px-4 py-2 bg-gray-900 text-white rounded-md">Lưu</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
 
           {/* Empty State */}
           {paginatedUsers.length === 0 && !error && (
@@ -369,7 +455,7 @@ const AdminUserList = () => {
                         key={page}
                         onClick={() => setCurrentPage(page)}
                         className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentPage === page
-                          ? 'bg-indigo-600 text-white'
+                          ? 'bg-gray-900 text-white'
                           : 'border border-gray-300 hover:bg-gray-50'
                           }`}
                       >

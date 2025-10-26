@@ -96,6 +96,20 @@ export async function refreshAccessToken() {
 api.interceptors.request.use((cfg) => {
     const token = getAccessToken();
     if (token) cfg.headers = { ...cfg.headers, Authorization: `Bearer ${token}` };
+    // In development, automatically add a bypass header for login requests so
+    // local testing doesn't get blocked by server rate-limiter. This is safe
+    // because it only runs when the app is built/run in dev (Vite sets
+    // import.meta.env.DEV).
+    try {
+        const isDev = Boolean(import.meta.env && import.meta.env.DEV);
+        if (isDev && cfg && cfg.url && cfg.url.toString().endsWith('/auth/login')) {
+            cfg.headers = { ...cfg.headers, 'x-bypass-rate-limit': 'true' };
+            console.debug('[api] request interceptor: added x-bypass-rate-limit for', cfg.url);
+        }
+    } catch (e) {
+        // if import.meta is not available or something unexpected happens,
+        // silently ignore and continue without the header.
+    }
     return cfg;
 });
 

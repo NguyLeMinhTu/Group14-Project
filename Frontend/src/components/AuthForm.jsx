@@ -25,14 +25,9 @@ const AuthForm = ({ onAuth }) => {
             if (result.error) {
                 throw result.error;
             }
-            if (onAuth) onAuth();
+            // success: result.payload contains token (set by thunk)
+            if (onAuth) onAuth(result.payload);
             else navigate('/');
-            const res = await api.post('/auth/login', { email, password });
-            const token = res.data?.token;
-            const refresh = res.data?.refreshToken;
-            if (refresh) setRefreshToken(refresh);
-            if (!token) throw new Error('Không nhận được token');
-            if (onAuth) onAuth(token);
         } catch (err) {
             setError(err.payload?.message || err.message || 'Đăng nhập thất bại');
         } finally {
@@ -63,8 +58,8 @@ const AuthForm = ({ onAuth }) => {
             <div className="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-lg ring-1 ring-gray-100">
                 <div className="flex items-center gap-4 mb-6">
                     <div>
-                        <h2 className="text-2xl font-semibold flex items-center gap-3"><LogIn className="w-6 h-6 text-blue-600" />Đăng nhập</h2>
-                        <p className="text-sm text-gray-500">Đăng nhập để tiếp tục sử dụng ứng dụng</p>
+                        <h2 className="text-2xl font-semibold flex items-center gap-3 text-gray-900"><LogIn className="w-6 h-6 text-gray-900" />Đăng nhập</h2>
+                        <p className="text-sm text-gray-600">Đăng nhập để tiếp tục sử dụng ứng dụng</p>
                     </div>
                 </div>
 
@@ -72,7 +67,7 @@ const AuthForm = ({ onAuth }) => {
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Email</label>
                         <input
-                            className="mt-1 block w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                            className="mt-1 block w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-300"
                             value={email}
                             onChange={e => setEmail(e.target.value)}
                             type="email"
@@ -84,7 +79,7 @@ const AuthForm = ({ onAuth }) => {
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Mật khẩu</label>
                         <input
-                            className="mt-1 block w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                            className="mt-1 block w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-300"
                             value={password}
                             onChange={e => setPassword(e.target.value)}
                             type="password"
@@ -95,7 +90,7 @@ const AuthForm = ({ onAuth }) => {
 
                     <div>
                         <button
-                            className="w-full inline-flex justify-center rounded-lg bg-gradient-to-r from-blue-600 to-blue-500 text-white px-4 py-2 shadow-sm hover:from-blue-700 hover:to-blue-600"
+                            className="w-full inline-flex justify-center rounded-lg bg-gray-900 text-white px-4 py-2 shadow-sm hover:bg-black disabled:opacity-50"
                             type="submit"
                             disabled={loading}
                         >
@@ -113,8 +108,8 @@ const AuthForm = ({ onAuth }) => {
                 )}
 
                 <div className="mt-6 flex flex-col gap-3 text-sm">
-                    <div className="text-center text-gray-500">Chưa có tài khoản? <button className="text-blue-600 font-medium" onClick={() => navigate('/register')}>Tạo tài khoản</button></div>
-                    <div className="text-center"><button className="text-blue-600 font-medium" onClick={() => navigate('/forgot-password')}>Quên mật khẩu</button></div>
+                    <div className="text-center text-gray-600">Chưa có tài khoản? <button className="text-gray-900 font-medium" onClick={() => navigate('/register')}>Tạo tài khoản</button></div>
+                    <div className="text-center"><button className="text-gray-900 font-medium" onClick={() => navigate('/forgot-password')}>Quên mật khẩu</button></div>
                 </div>
             </div>
         </div>

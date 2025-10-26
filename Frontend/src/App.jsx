@@ -3,8 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { setTokenFromStorage, fetchProfile, logout as logoutAction } from './store/authSlice';
-import api, { setAuthFromLocalStorage, clearAuth, getAccessToken, setAccessToken, removeAccessToken, clearAuth } from './lib/api';
-import { useNavigate } from 'react-router-dom';
+import api, { setAuthFromLocalStorage, getAccessToken, setAccessToken, removeAccessToken, clearAuth } from './lib/api';
 import AuthForm from './components/AuthForm';
 import Register from './components/Register';
 import Profile from './components/Profile';
@@ -20,66 +19,38 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   const dispatch = useDispatch();
-  const { token } = useSelector((s) => s.auth);
-
-  useEffect(() => {
-    // initialize token/header from storage and fetch profile if token exists
-    dispatch(setTokenFromStorage());
-    if (localStorage.getItem('token')) {
-      dispatch(fetchProfile());
-    }
-  }, [dispatch]);
-
   const navigate = useNavigate();
 
-  const handleLogout = async () => {
-    await dispatch(logoutAction());
-    navigate('/login');
-  };
-
-  // navigation helper passed to Auth components (they call thunks themselves)
-  const handleAuth = () => {
+  // local token state used by this component to drive initial UI; persisted token lives in localStorage
   const [token, setToken] = useState(getAccessToken() || null);
-  const [currentUser, setCurrentUser] = useState(null);
+  // read auth state from redux so Navbar and other components have a single source of truth
+  const auth = useSelector((s) => s.auth);
 
+  // Initialize auth header and populate redux profile when a token exists
   useEffect(() => {
-    const init = async () => {
-      // set api auth header if token in localStorage
-      setAuthFromLocalStorage();
-      if (!token) return;
-      try {
-        // fetch current user profile first
-        const res = await api.get('/profile');
-        setCurrentUser(res.data || null);
-        // Admin-specific user listing is handled in the admin route/component
-      } catch (err) {
-        // if token invalid or expired, clear auth and redirect to login
-        console.info('Profile fetch failed, clearing auth', err?.response?.status);
-        clearAuth();
-        setToken(null);
-        setCurrentUser(null);
-        // optionally redirect to login
-        // window.location.href = '/login';
-      }
-    };
-    init();
-  }, [token]);
+    dispatch(setTokenFromStorage());
+    setAuthFromLocalStorage();
+
+    if (!token) return;
+
+    // populate store user so Navbar/ProtectedRoute stay consistent
+    dispatch(fetchProfile());
+  }, [dispatch, token]);
 
   const handleLogout = async () => {
     try {
       await api.post('/auth/logout');
-    } catch (err) {
-      // ignore
+    } catch (e) {
+      // ignore network errors on logout
     }
+    // clear client-side state and notify store
+    dispatch(logoutAction());
     clearAuth();
     setToken(null);
-    setCurrentUser(null);
     navigate('/login');
   };
 
-  const navigate = useNavigate();
-
-  // centralize what happens after successful auth (login/register)
+  // Called by login/register components after successful auth
   const handleAuth = (t) => {
     if (!t) return;
     setAccessToken(t);
@@ -89,14 +60,14 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {token && <Navbar onLogout={handleLogout} />}
-      {currentUser && <Navbar currentUser={currentUser} onLogout={handleLogout} />}
+      {(token || auth.user) && <Navbar onLogout={handleLogout} />}
 
       <main className={token ? 'app-main p-6' : 'flex items-center justify-center min-h-screen p-6'}>
         <div className={token ? 'w-full' : 'w-full max-w-md'}>
           <Routes>
             <Route path="/login" element={<AuthForm onAuth={handleAuth} />} />
             <Route path="/register" element={<Register onAuth={handleAuth} />} />
+
             <Route
               path="/profile"
               element={
@@ -105,8 +76,12 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            {/* support reset route with optional token in path */}
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/reset-password/:token" element={<ResetPassword />} />
+
             <Route
               path="/admin"
               element={
@@ -115,23 +90,13 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/demo-refresh" element={token ? <DemoRefresh /> : <AuthForm onAuth={handleAuth} />} />
-            <Route path="/profile" element={token ? <Profile /> : <AuthForm onAuth={handleAuth} />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/admin" element={token ? <AdminUserList /> : <AuthForm onAuth={handleAuth} />} />
-            <Route path="/admin/logs" element={token ? <AdminLogs /> : <AuthForm onAuth={handleAuth} />} />
-            <Route path="/admin" element={currentUser?.role === 'admin' ? <AdminUserList /> : <AuthForm onAuth={handleAuth} />} />
-            <Route path="/moderator" element={(currentUser?.role === 'moderator' || currentUser?.role === 'admin') ? <ModeratorPanel /> : <AuthForm onAuth={handleAuth} />} />
-            <Route path="/" element={token ? <Profile /> : <AuthForm onAuth={handleAuth} />} />
+
+            <Route path="/admin/logs" element={auth.token ? <AdminLogs /> : <AuthForm onAuth={handleAuth} />} />
+            <Route path="/moderator" element={(auth.user?.role === 'moderator' || auth.user?.role === 'admin') ? <ModeratorPanel /> : <AuthForm onAuth={handleAuth} />} />
+
+            <Route path="/demo-refresh" element={auth.token ? <DemoRefresh /> : <AuthForm onAuth={handleAuth} />} />
+
+            <Route path="/" element={auth.token ? <Profile /> : <AuthForm onAuth={handleAuth} />} />
           </Routes>
         </div>
       </main>

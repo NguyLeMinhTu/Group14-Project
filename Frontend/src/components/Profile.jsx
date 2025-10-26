@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios, { setAuthFromLocalStorage, clearAuth } from '../lib/api';
+import api, { setAuthFromLocalStorage, clearAuth } from '../lib/api';
 import { LogOut, Trash2, UploadCloud, User, Mail, Lock, Camera, Link as LinkIcon, Save, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -16,6 +16,7 @@ const Profile = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   const fetchProfile = async () => {
     try {
@@ -50,6 +51,8 @@ const Profile = () => {
       setName(res.data.name || name);
       setEmail(res.data.email || email);
       setAvatar(res.data.avatar || avatar);
+      // close edit modal after successful update
+      setIsEditOpen(false);
     } catch (err) {
       setError(err.response?.data?.message || 'Cập nhật thất bại');
     } finally {
@@ -66,10 +69,10 @@ const Profile = () => {
     setError('');
     setIsUploading(true);
     try {
-  const form = new FormData();
-  form.append('avatar', file);
-  setAuthFromLocalStorage();
-  const res = await axios.post(`/profile/upload-avatar`, form);
+      const form = new FormData();
+      form.append('avatar', file);
+      setAuthFromLocalStorage();
+      const res = await api.post(`/profile/upload-avatar`, form);
 
 
       setAvatar(res.data.avatar || res.data.avatarUrl || '');
@@ -126,23 +129,8 @@ const Profile = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 p-4">
+    <div className="min-h-screen bg-gradient-to-br bg-white/100 p-4">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors mb-4"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            Quay lại
-          </Link>
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">Thông tin cá nhân</h1>
-            <p className="text-gray-600">Quản lý thông tin cá nhân của bạn</p>
-          </div>
-        </div>
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Avatar Section */}
           <div className="lg:col-span-1">
@@ -151,7 +139,7 @@ const Profile = () => {
 
               <div className="flex justify-center mb-6">
                 <div className="relative">
-                  <div className="w-48 h-48 bg-gradient-to-r from-purple-400 to-pink-400 rounded-2xl overflow-hidden shadow-xl">
+                  <div className="w-48 h-48 bg-white rounded-2xl overflow-hidden shadow-xl border border-gray-200">
                     {avatar ? (
                       <img src={avatar} alt="avatar" className="w-full h-full object-cover" />
                     ) : (
@@ -181,7 +169,7 @@ const Profile = () => {
                 <button
                   onClick={handleUploadFile}
                   disabled={!file || isUploading}
-                  className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5 disabled:transform-none disabled:opacity-50"
+                  className="w-full bg-gray-900 hover:bg-black disabled:bg-gray-400 text-white font-semibold py-3 px-4 rounded-xl shadow-sm hover:shadow-md transition-all duration-150 disabled:opacity-60"
                 >
                   {isUploading ? (
                     <div className="flex items-center justify-center">
@@ -198,74 +186,54 @@ const Profile = () => {
                     </div>
                   )}
                 </button>
-
-                <button
-                  onClick={handleUploadUrl}
-                  disabled={isUploading}
-                  className="w-full bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-semibold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
-                >
-                  <div className="flex items-center justify-center gap-2">
-                    <LinkIcon className="w-5 h-5" />
-                    Upload từ URL
-                  </div>
-                </button>
               </div>
             </div>
           </div>
 
           {/* Profile Form */}
           <div className="lg:col-span-2">
-            <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl p-8 border border-white/20">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Thông tin cá nhân</h2>
+            <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl p-8 border border-white/20 relative">
+              <div className="flex items-start justify-between mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">Thông tin cá nhân</h2>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setIsEditOpen(true)}
+                    className="inline-flex items-center gap-2 bg-gray-900 hover:bg-black text-white font-semibold py-2 px-4 rounded-lg shadow-sm"
+                  >
+                    <Save className="w-4 h-4" />
+                    Chỉnh sửa
+                  </button>
 
-              <form onSubmit={handleUpdate} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                      <User className="w-4 h-4" />
-                      Họ và tên
-                    </label>
-                    <input
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 transition-all duration-200 text-gray-900 placeholder-gray-400"
-                      type="text"
-                      value={name}
-                      onChange={e => setName(e.target.value)}
-                      placeholder="Nhập họ và tên"
-                      required
-                    />
-                  </div>
+                  <Link to="/demo-refresh" className="inline-flex items-center gap-2 border border-gray-300 bg-white hover:bg-gray-50 text-gray-900 font-medium py-2 px-3 rounded-lg">
+                    <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M20 8v6h-6" /><path strokeLinecap="round" strokeLinejoin="round" d="M4 20a8 8 0 1116 0" /></svg>
+                    Demo Refresh
+                  </Link>
+                </div>
+              </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                      <Mail className="w-4 h-4" />
-                      Email
-                    </label>
-                    <input
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 transition-all duration-200 text-gray-900 placeholder-gray-400"
-                      type="email"
-                      value={email}
-                      onChange={e => setEmail(e.target.value)}
-                      placeholder="Nhập email"
-                      required
-                    />
-                  </div>
+              {/* Read-only info card */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="text-sm text-gray-500">Họ và tên</div>
+                  <div className="text-lg font-medium text-gray-900">{name || '—'}</div>
+
+                  <div className="mt-4 text-sm text-gray-500">Email</div>
+                  <div className="text-lg font-medium text-gray-900">{email || '—'}</div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                    <Lock className="w-4 h-4" />
-                    Mật khẩu mới (để trống nếu không đổi)
-                  </label>
-                  <input
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 transition-all duration-200 text-gray-900 placeholder-gray-400"
-                    type="password"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    placeholder="Nhập mật khẩu mới"
-                  />
-                </div>
+                <div className="space-y-4">
+                  <div className="text-sm text-gray-500">Mật khẩu</div>
+                  <div className="text-lg font-medium text-gray-900">••••••••</div>
 
-                {/* Error Message */}
+                  <div className="mt-4 text-sm text-gray-500">ID người dùng</div>
+                  <div className="text-sm text-gray-700 break-all">{userId || '—'}</div>
+                </div>
+              </div>
+
+              {/* messages */}
+              <div className="mt-6">
                 {error && (
                   <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-r-xl">
                     <div className="flex">
@@ -281,7 +249,6 @@ const Profile = () => {
                   </div>
                 )}
 
-                {/* Success Message */}
                 {message && (
                   <div className="bg-green-50 border-l-4 border-green-400 p-4 rounded-r-xl">
                     <div className="flex">
@@ -296,35 +263,14 @@ const Profile = () => {
                     </div>
                   </div>
                 )}
-
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5 disabled:transform-none disabled:opacity-50"
-                >
-                  {isLoading ? (
-                    <div className="flex items-center justify-center">
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Đang cập nhật...
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center gap-2">
-                      <Save className="w-5 h-5" />
-                      Cập nhật thông tin
-                    </div>
-                  )}
-                </button>
-              </form>
+              </div>
 
               {/* Action Buttons */}
               <div className="mt-8 pt-6 border-t border-gray-200">
                 <div className="flex flex-col sm:flex-row gap-4">
                   <button
                     onClick={handleLogout}
-                    className="flex-1 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-semibold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
+                    className="flex-1 bg-gray-800 hover:bg-black text-white font-semibold py-3 px-4 rounded-xl shadow-sm transition-colors duration-150"
                   >
                     <div className="flex items-center justify-center gap-2">
                       <LogOut className="w-5 h-5" />
@@ -334,7 +280,7 @@ const Profile = () => {
 
                   <button
                     onClick={handleDeleteAccount}
-                    className="flex-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
+                    className="flex-1 border border-gray-300 bg-white hover:bg-gray-50 text-gray-900 font-semibold py-3 px-4 rounded-xl shadow-sm transition-colors duration-150"
                   >
                     <div className="flex items-center justify-center gap-2">
                       <Trash2 className="w-5 h-5" />
@@ -345,6 +291,63 @@ const Profile = () => {
 
               </div>
             </div>
+
+            {/* Edit Modal */}
+            {isEditOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center">
+                <div className="absolute inset-0 bg-black/40" onClick={() => setIsEditOpen(false)}></div>
+                <div className="relative w-full max-w-2xl mx-4">
+                  <div className="bg-white rounded-2xl shadow-2xl p-6 border">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold">Chỉnh sửa thông tin</h3>
+                      <button onClick={() => setIsEditOpen(false)} className="text-gray-500 hover:text-gray-800">Đóng</button>
+                    </div>
+
+                    <form onSubmit={handleUpdate} className="space-y-4">
+                      <div>
+                        <label className="text-sm text-gray-600">Họ và tên</label>
+                        <input
+                          className="w-full mt-1 px-4 py-2 border rounded-lg"
+                          type="text"
+                          value={name}
+                          onChange={e => setName(e.target.value)}
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-sm text-gray-600">Email</label>
+                        <input
+                          className="w-full mt-1 px-4 py-2 border rounded-lg"
+                          type="email"
+                          value={email}
+                          onChange={e => setEmail(e.target.value)}
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-sm text-gray-600">Mật khẩu mới (để trống nếu không đổi)</label>
+                        <input
+                          className="w-full mt-1 px-4 py-2 border rounded-lg"
+                          type="password"
+                          value={password}
+                          onChange={e => setPassword(e.target.value)}
+                          placeholder="Nhập mật khẩu mới"
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-end gap-3 pt-2">
+                        <button type="button" onClick={() => setIsEditOpen(false)} className="px-4 py-2 rounded-lg border">Hủy</button>
+                        <button type="submit" disabled={isLoading} className="px-4 py-2 bg-gray-900 hover:bg-black text-white rounded-lg">
+                          {isLoading ? 'Đang lưu...' : 'Lưu thay đổi'}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import axios from 'axios';
-import { setAuthFromLocalStorage } from '../lib/api';
+import api, { setAuthFromLocalStorage } from '../lib/api';
 import {
   FileText,
   Search,
@@ -30,7 +29,8 @@ const AdminLogs = () => {
       if (typeFilter) params.type = typeFilter;
       if (fromDate) params.from = fromDate;
       if (toDate) params.to = toDate;
-      const res = await axios.get('/logs', { params });
+      // use shared api instance so baseURL and auth headers are correct
+      const res = await api.get('/logs', { params });
       const items = res.data?.items || [];
       setLogs(items);
       setFiltered(items);
@@ -61,11 +61,11 @@ const AdminLogs = () => {
   const paginated = useMemo(() => filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize), [filtered, currentPage, pageSize]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+    <div className="min-h-screen bg-white p-6">
       <div className="max-w-7xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-xl p-6 mb-8">
+        <div className="bg-white rounded-2xl shadow-sm p-6 mb-8">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl">
+            <div className="p-3 bg-gray-900 rounded-xl">
               <FileText className="w-6 h-6 text-white" />
             </div>
             <div>

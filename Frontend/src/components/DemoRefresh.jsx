@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import api, { getAccessToken, removeAccessToken, getRefreshToken } from '../lib/api';
+import api, { getAccessToken, removeAccessToken, getRefreshToken, setAccessToken as setAccessTokenLocal } from '../lib/api';
 
 export default function DemoRefresh() {
   const [log, setLog] = useState([]);
@@ -60,7 +60,16 @@ export default function DemoRefresh() {
     try {
       const res = await api.post('/auth/refresh', {});
       append('Refresh response: ' + (res.data?.message || JSON.stringify(res.data)));
-      setAccessToken(res.data?.token || null);
+      const newToken = res.data?.token || null;
+      if (newToken) {
+        // persist token and set default Authorization header for api instance
+        setAccessTokenLocal(newToken);
+        // update local display state
+        setAccessToken(getAccessToken());
+        append('Access token stored to localStorage and Authorization header set.');
+      } else {
+        append('No token returned by refresh endpoint.');
+      }
     } catch (err) {
       append('Refresh failed: ' + (err.response?.data?.message || err.message));
     } finally {
@@ -71,24 +80,36 @@ export default function DemoRefresh() {
   const clearLog = () => setLog([]);
 
   return (
-    <div className="bg-white/90 p-6 rounded-2xl shadow-lg border border-gray-100">
-      <h3 className="text-xl font-semibold mb-3">Demo: Refresh Token (nâng cao)</h3>
+    <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-200">
+      <h3 className="text-xl font-semibold mb-3 text-gray-900">Demo: Refresh Token (nâng cao)</h3>
+
+      {/* Instructions */}
+      <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-100">
+        <h4 className="text-sm font-medium text-gray-900 mb-2">Hướng dẫn thao tác</h4>
+        <ol className="text-sm text-gray-700 list-decimal list-inside space-y-1">
+          <li>Đăng nhập bằng tài khoản (nên dùng account admin để thử các endpoint cần quyền).</li>
+          <li>Bấm <strong>Call protected</strong> để gọi GET /profile — nếu token hợp lệ, server trả thông tin profile.</li>
+          <li>Bấm <strong>Simulate expiry</strong> để xóa access token ở localStorage (mô phỏng token hết hạn).</li>
+          <li>Bấm <strong>Force refresh now</strong> để gọi POST /auth/refresh và lấy access token mới (nếu refresh token hợp lệ).</li>
+          <li>Quan sát <em>Event log</em> để xem các sự kiện refresh:start, refresh:success hoặc refresh:fail và kết quả các cuộc gọi.</li>
+        </ol>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-        <div className="col-span-1 p-4 rounded-lg bg-gray-50">
+        <div className="col-span-1 p-4 rounded-lg bg-white border border-gray-100">
           <div className="text-sm text-gray-500">Access Token</div>
-          <div className="mt-2 text-xs break-words text-gray-800 h-20 overflow-auto bg-white p-2 rounded border">{accessToken || <span className="text-gray-400">(none)</span>}</div>
+          <div className="mt-2 text-xs break-words text-gray-800 h-20 overflow-auto bg-gray-50 p-2 rounded">{accessToken || <span className="text-gray-400">(none)</span>}</div>
         </div>
 
-        <div className="col-span-1 p-4 rounded-lg bg-gray-50">
+        <div className="col-span-1 p-4 rounded-lg bg-white border border-gray-100">
           <div className="text-sm text-gray-500">Refresh Token (client copy)</div>
-          <div className="mt-2 text-xs break-words text-gray-800 h-20 overflow-auto bg-white p-2 rounded border">{refreshToken || <span className="text-gray-400">(not saved)</span>}</div>
+          <div className="mt-2 text-xs break-words text-gray-800 h-20 overflow-auto bg-gray-50 p-2 rounded">{refreshToken || <span className="text-gray-400">(not saved)</span>}</div>
         </div>
 
-        <div className="col-span-1 p-4 rounded-lg bg-gray-50 flex flex-col gap-3">
-          <button onClick={callProtected} disabled={loading} className="w-full bg-blue-600 text-white py-2 rounded">Call protected</button>
-          <button onClick={simulateExpiry} className="w-full bg-yellow-500 text-white py-2 rounded">Simulate expiry (remove local access)</button>
-          <button onClick={forceRefresh} disabled={loading} className="w-full bg-green-600 text-white py-2 rounded">Force refresh now</button>
+        <div className="col-span-1 p-4 rounded-lg bg-white border border-gray-100 flex flex-col gap-3">
+          <button onClick={callProtected} disabled={loading} className="w-full bg-gray-900 text-white py-2 rounded">Call protected</button>
+          <button onClick={simulateExpiry} className="w-full bg-gray-500 text-white py-2 rounded">Simulate expiry (remove local access)</button>
+          <button onClick={forceRefresh} disabled={loading} className="w-full bg-gray-700 text-white py-2 rounded">Force refresh now</button>
         </div>
       </div>
 
@@ -99,11 +120,11 @@ export default function DemoRefresh() {
         </div>
       </div>
 
-      <div className="h-48 overflow-auto bg-gray-100 p-3 rounded">
+      <div className="h-48 overflow-auto bg-gray-50 p-3 rounded border border-gray-100">
         {log.length === 0 ? (
           <div className="text-sm text-gray-400">No events yet. Try calling protected endpoint or simulate expiry.</div>
         ) : (
-          log.map((l, i) => <div key={i} className="text-xs py-1 border-b border-gray-200">{l}</div>)
+          log.map((l, i) => <div key={i} className="text-xs py-1 border-b border-gray-100 text-gray-800">{l}</div>)
         )}
       </div>
     </div>

@@ -22,40 +22,29 @@ const Login = ({ onAuth }) => {
     setError('');
     setIsLoading(true);
     try {
-      // If parent provided an onAuth handler (test harness), call it.
+      // If parent provided an onAuth handler (test harness), call it and return early
       if (onAuth) {
-        const res = await axios.post(`${API_BASE}/auth/login`, { email, password });
-        const { token } = res.data;
+        const res = await api.post('/auth/login', { email, password });
+        const token = res.data?.token;
         if (token) {
           onAuth(token);
           return;
-      const res = await api.post('/auth/login', { email, password });
-      const { token } = res.data || {};
-      if (token) {
-        if (onAuth) {
-          onAuth(token);
-        } else {
-          setAccessToken(token);
-          // redirect to home
-          window.location.href = '/';
         }
         setError('Không nhận được token từ server');
         return;
       }
 
-      // Use redux thunk to login and then fetch profile
+      // Default flow: use redux thunk which sets token and then fetch profile
       const resultAction = await dispatch(login({ email, password }));
       if (login.fulfilled.match(resultAction)) {
-        // after token saved by thunk, fetch profile
         await dispatch(fetchProfile());
-        // navigate to home
         navigate('/');
       } else {
         const payload = resultAction.payload || resultAction.error;
         setError(payload?.message || 'Đăng nhập thất bại');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Đăng nhập thất bại');
+      setError(err.response?.data?.message || err.message || 'Đăng nhập thất bại');
     } finally {
       setIsLoading(false);
     }
