@@ -8,7 +8,8 @@
     "dev": "nodemon server.js",
     "server": "npm run dev",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "seed": "node seed/seedUsers.js"
+    "seed": "node seed/seedUsers.js",
+    "ci": "npm ci"
   },
   "keywords": [],
   "author": "",
