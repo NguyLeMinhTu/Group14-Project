@@ -23,15 +23,21 @@ const FRONTEND_ORIGINS = (process.env.FRONTEND_ORIGIN || 'http://localhost:5173'
 	.split(',')
 	.map(origin => origin.trim());
 
-app.use(cors({ 
+console.log('CORS Allowed Origins:', FRONTEND_ORIGINS);
+
+app.use(cors({
 	origin: function (origin, callback) {
+		console.log('CORS request from origin:', origin);
 		if (!origin || FRONTEND_ORIGINS.includes(origin)) {
 			callback(null, true);
 		} else {
 			callback(new Error('Not allowed by CORS'));
 		}
 	},
-	credentials: true 
+	credentials: true,
+	methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+	allowedHeaders: ['Content-Type', 'Authorization'],
+	optionsSuccessStatus: 200
 }));
 
 
