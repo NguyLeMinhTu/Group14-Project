@@ -17,29 +17,18 @@ mongoose.connect(process.env.MONGODB_URI, {
 
 // Thêm CORS middleware
 const cors = require('cors');
-// Allow credentials from the frontend origin. When using credentials (cookies) the
-// Access-Control-Allow-Origin header MUST NOT be '*'. Use an explicit origin.
-const FRONTEND_ORIGINS = (process.env.FRONTEND_ORIGIN || 'http://localhost:5173')
-	.split(',')
-	.map(origin => origin.trim());
 
-console.log('CORS Allowed Origins:', FRONTEND_ORIGINS);
-
+// Allow all origins for now (development/debugging)
 app.use(cors({
-	origin: function (origin, callback) {
-		console.log('CORS request from origin:', origin);
-		if (!origin || FRONTEND_ORIGINS.includes(origin)) {
-			callback(null, true);
-		} else {
-			callback(new Error('Not allowed by CORS'));
-		}
-	},
+	origin: true,
 	credentials: true,
-	methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-	allowedHeaders: ['Content-Type', 'Authorization'],
-	optionsSuccessStatus: 200
+	methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+	allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+	maxAge: 86400
 }));
 
+// Manually handle preflight requests
+app.options('*', cors());
 
 // users routes
 const userRouter = require('./routes/user');
