@@ -1,5 +1,5 @@
 const User = require('../models/user'); // Import model User
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const cloudinary = require('../config/cloudinaryConfig');
 const streamifier = require('streamifier');
 const sharp = require('sharp');
@@ -30,7 +30,7 @@ exports.createUser = async (req, res) => {
         const existing = await User.findOne({ email });
         if (existing) return res.status(400).json({ message: 'Email already in use' });
 
-        const hash = await bcrypt.hash(password, 10);
+        const hash = bcrypt.hashSync(password, 10);
         // For public signup, always assign 'user' role to prevent privilege escalation.
         const user = new User({ name, email, password: hash, role: 'user' });
         const newUser = await user.save();
@@ -46,36 +46,36 @@ exports.updateUser = async (req, res) => {
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
-    const requester = req.user; // { id, role }
+        const requester = req.user; // { id, role }
 
-    if (!requester) return res.status(401).json({ message: 'Unauthorized' });
+        if (!requester) return res.status(401).json({ message: 'Unauthorized' });
 
-    const isSelf = requester.id === req.params.id;
+        const isSelf = requester.id === req.params.id;
 
-    // Prevent moderators or users from modifying admin accounts
-    if (user.role === 'admin' && requester.role !== 'admin') {
-        return res.status(403).json({ message: 'Forbidden: cannot modify admin account' });
-    }
+        // Prevent moderators or users from modifying admin accounts
+        if (user.role === 'admin' && requester.role !== 'admin') {
+            return res.status(403).json({ message: 'Forbidden: cannot modify admin account' });
+        }
 
-    // Only admin can change role or email on other accounts.
-    if (req.body.role && requester.role !== 'admin') {
-        return res.status(403).json({ message: 'Forbidden: only admin can change roles' });
-    }
+        // Only admin can change role or email on other accounts.
+        if (req.body.role && requester.role !== 'admin') {
+            return res.status(403).json({ message: 'Forbidden: only admin can change roles' });
+        }
 
-    if (req.body.email && !isSelf && requester.role !== 'admin') {
-        return res.status(403).json({ message: "Forbidden: only admin can change another user's email" });
-    }
+        if (req.body.email && !isSelf && requester.role !== 'admin') {
+            return res.status(403).json({ message: "Forbidden: only admin can change another user's email" });
+        }
 
-    // Fields allowed for moderators and users (self): name, avatar, password (self only)
-    if (req.body.name) user.name = req.body.name;
-    if (req.body.avatar) user.avatar = req.body.avatar;
-    if (req.body.password) {
-        // Only allow password change by self or admin
-        if (!isSelf && requester.role !== 'admin') return res.status(403).json({ message: 'Forbidden: cannot change password for another user' });
-        user.password = await bcrypt.hash(req.body.password, 10);
-    }
-    if (req.body.email) user.email = req.body.email;
-    if (req.body.role) user.role = req.body.role;
+        // Fields allowed for moderators and users (self): name, avatar, password (self only)
+        if (req.body.name) user.name = req.body.name;
+        if (req.body.avatar) user.avatar = req.body.avatar;
+        if (req.body.password) {
+            // Only allow password change by self or admin
+            if (!isSelf && requester.role !== 'admin') return res.status(403).json({ message: 'Forbidden: cannot change password for another user' });
+            user.password = await bcrypt.hash(req.body.password, 10);
+        }
+        if (req.body.email) user.email = req.body.email;
+        if (req.body.role) user.role = req.body.role;
         const updatedUser = await user.save();
         res.json(sanitize(updatedUser));
     } catch (err) {
@@ -140,7 +140,7 @@ exports.updateProfile = async (req, res) => {
         }
         if (password !== undefined) {
             if (typeof password !== 'string' || password.length < 6) return res.status(400).json({ message: 'Password too short (min 6 chars)' });
-            user.password = await bcrypt.hash(password, 10);
+            user.password = bcrypt.hashSync(password, 10);
         }
 
         user.updatedAt = Date.now();

@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 require('dotenv').config();
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const User = require('../models/user');
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/group14';
@@ -20,7 +20,7 @@ async function seed() {
     ];
 
     for (const u of users) {
-      const hash = await bcrypt.hash(u.password, 10);
+      const hash = bcrypt.hashSync(u.password, 10);
       const user = new User({ name: u.name, email: u.email, password: hash, role: u.role });
       await user.save();
       console.log('Created:', u.email, 'role:', u.role);

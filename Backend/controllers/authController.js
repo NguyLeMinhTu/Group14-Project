@@ -1,6 +1,6 @@
 const User = require('../models/user');
 const RefreshToken = require('../models/refreshToken');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { logActivity } = require('../middleware/logger');
 const crypto = require('crypto');
@@ -22,7 +22,7 @@ exports.signup = async (req, res) => {
         const existing = await User.findOne({ email });
         if (existing) return res.status(400).json({ message: 'Email already in use' });
 
-        const hash = await bcrypt.hash(password, 10);
+        const hash = bcrypt.hashSync(password, 10);
         const user = new User({ name, email, password: hash });
         await user.save();
 
@@ -64,7 +64,7 @@ exports.login = async (req, res) => {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
 
-        const ok = await bcrypt.compare(password, user.password);
+        const ok = bcrypt.compareSync(password, user.password);
         if (!ok) {
             // Log failed attempt (wrong password)
             try { await logActivity({ userId: user._id, type: 'login_failed', message: 'Login failed - wrong password', req, meta: { email } }); } catch (e) { }
@@ -225,7 +225,7 @@ exports.resetPassword = async (req, res) => {
         if (!user) return res.status(400).json({ message: 'Invalid or expired token' });
 
         if (typeof password !== 'string' || password.length < 6) return res.status(400).json({ message: 'Password too short (min 6 chars)' });
-        user.password = await bcrypt.hash(password, 10);
+        user.password = bcrypt.hashSync(password, 10);
         // Clear reset fields
         user.resetPasswordToken = '';
         user.resetPasswordExpires = null;
